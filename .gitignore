@@ -24,3 +24,6 @@ targets_retry.json
 # IDE
 .vscode/
 .idea/
+
+# Sync script — only local, never sync to GitHub
+sync.sh
