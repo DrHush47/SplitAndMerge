@@ -12,7 +12,6 @@
 Ур.0.5 → OpenAlex API           (мгновенная проверка DOI)
 Ур.1   → researcher-web         (поиск фактов)
 Ур.2   → Crawl4AI               (базовый HTTP-парсинг)
-Ур.2.5 → Playwright MCP         (интерактивный браузер, KEYLESS)
 Ур.3   → Scrapling StealthySession  ← ТЫ ЗДЕСЬ (бесплатно, обход Cloudflare)
 Ур.4   → FireCrawl              (резерв, платный)
 Ур.5   → Человек                (ручная верификация)
@@ -220,20 +219,11 @@ STATUS: 200
 
 ---
 
-### Playwright MCP как companion-инструмент
-
-Scrapling использует Playwright Chromium под капотом. Для **интерактивных** задач (логин, формы, скриншоты) используй отдельный **Playwright MCP** (Ур.2.5 каскада) — см. полный референс в [`playwright.md`](../playwright.md).
-
-Общий движок: оба инструмента используют один `ms-playwright` Chromium (1.6 GB), дополнительное место на диске: 0 байт.
-
----
-
 ## Связанные документы
 
 - `../docs/knowledge.md` — полный протокол работы (каскад, .docx, техконстанты)
 - `../docs/architecture.md` — архитектура конвейера редактуры
 - `../openalex/openalex.md` — референс OpenAlex (Ур.0.5, программная валидация DOI)
-- `../playwright.md` — референс Playwright MCP (Ур.2.5, интерактивный браузер — общий Chromium)
 - `../firecrawl/firecrawl.md` — референс FireCrawl (Ур.4 резерв)
 - `../crawl4ai/factcheck_crawl4ai.py` — Crawl4AI (Ур.2)
 - `factcheck_scrapling.py` — **этот скрипт**

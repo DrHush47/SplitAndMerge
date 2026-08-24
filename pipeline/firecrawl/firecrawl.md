@@ -11,7 +11,6 @@
 Ур.0.5 → OpenAlex API           (мгновенная проверка DOI)
 Ур.1   → researcher-web         (поиск фактов)
 Ур.2   → Crawl4AI               (базовый HTTP-парсинг)
-Ур.2.5 → Playwright MCP         (интерактивный браузер, KEYLESS)
 Ур.3   → Scrapling StealthySession (обход Cloudflare, бесплатно)
 Ур.4   → FireCrawl              ← ТЫ ЗДЕСЬ (платный резерв)
 Ур.5   → Человек                (ручная верификация)
@@ -26,7 +25,6 @@
 **Когда НЕ применять:**
 - Простые статические URL → Crawl4AI (бесплатно, быстрее)
 - Сайты с Cloudflare → Scrapling (бесплатно)
-- Интерактивные страницы → Playwright MCP (бесплатно, KEYLESS)
 - **Всегда пробовать Scrapling перед FireCrawl — экономия кредитов.**
 
 ---
@@ -97,5 +95,4 @@ firecrawl credit-usage --json --pretty -o pipeline/firecrawl/.firecrawl/credits.
 - `../docs/knowledge.md` — главный cheatsheet каскада фактчекинга
 - `../docs/architecture.md` — архитектура конвейера редактуры
 - `../scrapling/scrapling.md` — референс Scrapling (Ур.3, основная замена FireCrawl)
-- `../playwright.md` — референс Playwright MCP (Ур.2.5)
 - `../openalex/openalex.md` — референс OpenAlex (Ур.0.5)

@@ -48,11 +48,11 @@ firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
 | Файл | Назначение |
 |------|-----------|
 | [`docs/architecture.md`](pipeline/docs/architecture.md) | Архитектура конвейера — 5 ролей, 10 этапов, 7 принципов |
-| [`docs/knowledge.md`](pipeline/docs/knowledge.md) | Каскад веб-фактчекинга — 8 уровней, техконстанты, команды запуска |
+| [`docs/knowledge.md`](pipeline/docs/knowledge.md) | Каскад веб-фактчекинга — 7 уровней, техконстанты, команды запуска |
 | [`docs/docx-protocol.md`](pipeline/docs/docx-protocol.md) | Протокол правки .docx через python-docx — правила, шаблоны, антипаттерны |
 | [`docs/llm.md`](pipeline/docs/llm.md) | Prompt engineering — руководство по составлению промптов |
 | [`docs/results.md`](pipeline/docs/results.md) | Шаблон отчёта факт-чекера |
-| [`docs/playwright.md`](pipeline/docs/playwright.md) | Standalone-референс Playwright MCP (Ур.2.5) |
+
 
 ## Структура проекта
 
@@ -73,16 +73,14 @@ firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
     ├── requirements.txt              ← Python-зависимости
     ├── targets.json                  ← Цели для проверки (заполняется
     │                                    перед запуском)
-    ├── playwright.md                 ← Standalone-референс Playwright MCP
-    │
+
     ├── docs/                         ← Документация (6 файлов)
     │   ├── architecture.md           ← Архитектура конвейера
     │   ├── knowledge.md              ← Каскад фактчекинга
     │   ├── docx-protocol.md          ← Протокол правки .docx
     │   ├── llm.md                    ← Prompt engineering
     │   ├── results.md                ← Шаблон отчёта
-    │   └── playwright.md             ← Референс Playwright
-    │
+
     ├── openalex/                     ← Ур.0.5 — валидация DOI
     │   ├── factcheck_openalex.py     ← Скрипт: OpenAlex REST API
     │   └── openalex.md               ← Референс команд

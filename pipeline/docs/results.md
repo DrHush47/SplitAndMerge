@@ -1,7 +1,7 @@
 # Отчёт факт-чекера
 
 > Дата: 2026-07-17
-> Каскад: OpenAlex (Ур.0.5) → researcher-web (Ур.1) → Crawl4AI (Ур.2) → Playwright MCP (Ур.2.5) → Scrapling (Ур.3) → FireCrawl (Ур.4, резерв)
+> Каскад: OpenAlex (Ур.0.5) → researcher-web (Ур.1) → Crawl4AI (Ур.2) → Scrapling (Ур.3) → FireCrawl (Ур.4, резерв)
 > Тестовый прогон: 3 DOI (исправленные) из targets.json
 
 ---

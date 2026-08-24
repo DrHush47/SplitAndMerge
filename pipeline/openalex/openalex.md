@@ -12,7 +12,6 @@
 Ур.0.5 → OpenAlex API           ← ТЫ ЗДЕСЬ (бесплатно, мгновенная проверка DOI)
 Ур.1   → researcher-web         (поиск фактов)
 Ур.2   → Crawl4AI               (базовый HTTP-парсинг)
-Ур.2.5 → Playwright MCP         (интерактивный браузер, KEYLESS)
 Ур.3   → Scrapling StealthySession (обход Cloudflare, бесплатно)
 Ур.4   → FireCrawl              (резерв, платный)
 Ур.5   → Человек                (ручная верификация)
@@ -191,7 +190,6 @@ data, error = lookup_doi("10.1136/bmj.n71", timeout=15, mailto="me@example.com")
 
 - `../docs/knowledge.md` — полный протокол работы (каскад, .docx, техконстанты)
 - `../docs/architecture.md` — архитектура конвейера редактуры
-- `../playwright.md` — референс Playwright MCP (Ур.2.5, интерактивный браузер)
 - `../scrapling/scrapling.md` — референс Scrapling (Ур.3)
 - `../firecrawl/firecrawl.md` — референс FireCrawl (Ур.4 резерв)
 - `../crawl4ai/factcheck_crawl4ai.py` — Crawl4AI (Ур.2)

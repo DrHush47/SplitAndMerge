@@ -8,11 +8,6 @@
       "args": ["-y", "@upstash/context7-mcp"],
       "_note": "Живая документация библиотек. Без API-ключа (опционально)."
     },
-    "playwright": {
-      "command": "npx",
-      "args": ["-y", "@playwright/mcp@latest"],
-      "_note": "Интерактивный браузер: логин, формы, скриншоты. KEYLESS. Ур.2.5 каскада фактчекинга."
-    },
     "fetch": {
       "command": "uvx",
       "args": ["mcp-server-fetch"],
