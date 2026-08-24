@@ -29,16 +29,6 @@ firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
 
 > Для Linux/Mac заменить `Scripts` на `bin` в путях к Python.
 
-## Синхронизация с GitHub
-
-```bash
-# Отправить все локальные изменения на GitHub:
-bash sync.sh
-
-# Или с пояснением:
-bash sync.sh "обновил README и скрипты"
-```
-
 ## Документация
 
 | Файл | Назначение |
