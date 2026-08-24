@@ -1,0 +1,26 @@
+# MCP project — sensitive files
+.env
+
+# MCP configs with API keys (do not commit)
+.agents/mcp.json
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environment
+pipeline/crawl4ai/.venv/
+
+# Crawler output files
+pipeline/crawl4ai/crawl_*.txt
+pipeline/crawl4ai/fc_*.txt
+pipeline/crawl4ai/fc2_*.txt
+pipeline/openalex/oa_*.txt
+pipeline/openalex/oa2_*.txt
+pipeline/scrapling/sc_*.txt
+pipeline/firecrawl/.firecrawl/*.md
+targets_retry.json
+
+# IDE
+.vscode/
+.idea/

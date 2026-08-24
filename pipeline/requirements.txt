@@ -1,0 +1,6 @@
+# Pipeline — каскад фактчекинга + редактура .docx
+# Установка: ./pipeline/crawl4ai/.venv/Scripts/python.exe -m pip install -r pipeline/requirements.txt
+
+crawl4ai>=0.5.0
+scrapling[all]>=0.4.11
+python-docx>=1.0.0

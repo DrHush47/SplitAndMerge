@@ -1,0 +1,10 @@
+URL: https://cyberleninka.ru/article/n/metodika-otsenki-kachestva-dannyh-elektronnyh-meditsinskih-kart
+FACT: Andreychenko A.E. — Methodology for evaluating the quality of electronic health record data
+EXPECT: 
+DOI: N/A
+STATUS: SKIP
+SUCCESS: False
+ERROR: No DOI to look up
+
+======================================================================
+[Error: No DOI to look up]

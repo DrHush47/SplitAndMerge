@@ -1,0 +1,10 @@
+URL: https://minzdrav.gov.ru/news/2026/04/17/30794-itogovaya-kollegiya-2025-i-plany-na-2026
+FACT: Минздрав РФ — Материалы коллегии за 2025 год
+EXPECT: 
+DOI: N/A
+STATUS: SKIP
+SUCCESS: False
+ERROR: No DOI to look up
+
+======================================================================
+[Error: No DOI to look up]

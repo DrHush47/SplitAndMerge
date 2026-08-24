@@ -1,0 +1,10 @@
+URL: https://yandex.ru/company/news/13-11-2025-04
+FACT: Yandex Cloud — Проект ранней диагностики ДЦП (премия «Цифровые решения»)
+EXPECT: 
+DOI: N/A
+STATUS: SKIP
+SUCCESS: False
+ERROR: No DOI to look up
+
+======================================================================
+[Error: No DOI to look up]

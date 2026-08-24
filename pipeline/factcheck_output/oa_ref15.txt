@@ -1,0 +1,10 @@
+URL: https://roszdravnadzor.gov.ru/services/misearch
+FACT: Росздравнадзор — Государственный реестр медицинских изделий и организаций
+EXPECT: 
+DOI: N/A
+STATUS: SKIP
+SUCCESS: False
+ERROR: No DOI to look up
+
+======================================================================
+[Error: No DOI to look up]

@@ -1,0 +1,10 @@
+URL: https://www.nsu.ru/n/media/news/nauka/razrabotchiki-tsentra-iskusstvennogo-intellekta-ngu-sozdali-prototip-sistemy-tsifrovoy-pomoshchnik-v/
+FACT: НГУ — Метод «Доктор Пирогов»: цифровой помощник врача
+EXPECT: 
+DOI: N/A
+STATUS: SKIP
+SUCCESS: False
+ERROR: No DOI to look up
+
+======================================================================
+[Error: No DOI to look up]

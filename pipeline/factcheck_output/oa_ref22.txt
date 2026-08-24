@@ -1,0 +1,16 @@
+URL: https://doi.org/10.1136/bmj.m689
+FACT: Nagendran M. — Artificial intelligence versus clinicians: systematic review of design, reporting standards, and claims of deep learning studies
+EXPECT: DOI 10.1136/bmj.m689
+DOI: 10.1136/bmj.m689
+STATUS: CONFIRMED
+SUCCESS: True
+
+======================================================================
+OpenAlex Title      : Artificial intelligence versus clinicians: systematic review of design, reporting standards, and claims of deep learning studies
+OpenAlex Authors     : Myura Nagendran; Yang Chen; Christopher A. Lovejoy; Anthony Gordon; Matthieu Komorowski et al.
+OpenAlex DOI         : 10.1136/bmj.m689
+OpenAlex Biblio      : Journal: BMJ, Year: 2020
+OpenAlex Cited by    : 1070
+OpenAlex Type        : review
+OpenAlex IDs         : doi=https://doi.org/10.1136/bmj.m689; mag=3013681994; pmid=https://pubmed.ncbi.nlm.nih.gov/32213531
+OpenAlex Access      : Status: Open Access | PDF: https://www.bmj.com/content/bmj/368/bmj.m689.full.pdf | Landing: https://doi.org/10.1136/bmj.m689

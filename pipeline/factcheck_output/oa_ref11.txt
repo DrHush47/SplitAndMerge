@@ -1,0 +1,15 @@
+URL: https://radiology-diagnos.ru/articles/2024-5-01
+FACT: Reznikov D.N. — Artificial intelligence for bone age assessment (hackathon)
+EXPECT: 
+DOI: N/A
+STATUS: CONFIRMED
+SUCCESS: True
+
+======================================================================
+Manual Extraction (page extracted after Crawl4AI timeout):
+Title      : Применение искусственного интеллекта для оценки костного возраста в Российской медицине: опыт хакатона (итоги разработки алгоритмов для медицинской диагностики)
+Authors    : Д.Н. Резников, Д.В. Кулиговский, И.Г. Воронцова, З.М. Магомедова, К.Э. Медведев, А.В. Петряйкин, Е.Е. Петряйкина, Р.А. Ерижоков, О.В. Омелянская, А.В. Владзимирский, Ю.А. Васильев
+Journal    : Диагностическая и интервенционная радиология, 2024; 18(5); 6-14
+Keywords   : костный возраст, искусственный интеллект, нейронные сети, рентгенография кисти, педиатрия, лучевая диагностика, орфанные заболевания
+Match      : Author Reznikov D.N. CONFIRMED (1st author); Topic AI + bone age CONFIRMED; Hackathon mention CONFIRMED
+Note       : Crawl4AI timed out; manually extracted via Firecrawl parse

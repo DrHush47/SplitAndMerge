@@ -1,0 +1,5 @@
+[
+  {"id": "ref01", "url": "https://doi.org/10.1038/s41591-018-0300-7", "fact": "Topol E.J. High-performance medicine: the convergence of human and artificial intelligence. Nature Medicine 2019, vol 25, pp 44-56", "expect": "DOI 10.1038/s41591-018-0300-7, Nature Medicine vol 25 pp 44-56"},
+  {"id": "ref02", "url": "https://doi.org/10.1136/bmj.n71", "fact": "Page M.J. et al. The PRISMA 2020 statement: an updated guideline for reporting systematic reviews. BMJ 2021", "expect": "DOI 10.1136/bmj.n71, BMJ 2021"},
+  {"id": "ref03", "url": "https://doi.org/10.1126/science.aax2342", "fact": "Obermeyer Z. et al. Dissecting racial bias in an algorithm used to manage the health of populations. Science 2019", "expect": "DOI 10.1126/science.aax2342, Science 2019"}
+]

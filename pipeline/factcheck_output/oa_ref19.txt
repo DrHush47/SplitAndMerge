@@ -1,0 +1,16 @@
+URL: https://doi.org/10.1038/s41591-022-01772-9
+FACT: Vasey B. — Reporting guideline for the early-stage clinical evaluation of decision support systems driven by AI: DECIDE-AI
+EXPECT: DOI 10.1038/s41591-022-01772-9
+DOI: 10.1038/s41591-022-01772-9
+STATUS: CONFIRMED
+SUCCESS: True
+
+======================================================================
+OpenAlex Title      : Reporting guideline for the early-stage clinical evaluation of decision support systems driven by artificial intelligence: DECIDE-AI
+OpenAlex Authors     : Baptiste Vasey; Myura Nagendran; Bruce Campbell; David A. Clifton; Gary S. Collins et al.
+OpenAlex DOI         : 10.1038/s41591-022-01772-9
+OpenAlex Biblio      : Journal: Nature Medicine, Year: 2022
+OpenAlex Cited by    : 564
+OpenAlex Type        : article
+OpenAlex IDs         : doi=https://doi.org/10.1038/s41591-022-01772-9; pmid=https://pubmed.ncbi.nlm.nih.gov/35585198
+OpenAlex Access      : Status: Closed | Landing: https://doi.org/10.1038/s41591-022-01772-9

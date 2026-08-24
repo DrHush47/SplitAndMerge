@@ -1,0 +1,16 @@
+URL: https://doi.org/10.1038/s41591-020-1034-x
+FACT: Liu X. — Reporting guidelines for clinical trial reports for interventions involving AI: the CONSORT-AI extension
+EXPECT: DOI 10.1038/s41591-020-1034-x
+DOI: 10.1038/s41591-020-1034-x
+STATUS: CONFIRMED
+SUCCESS: True
+
+======================================================================
+OpenAlex Title      : Reporting guidelines for clinical trial reports for interventions involving artificial intelligence: the CONSORT-AI extension
+OpenAlex Authors     : Xiaoxuan Liu; Samantha Cruz Rivera; David Moher; Melanie Calvert; Alastair K. Denniston et al.
+OpenAlex DOI         : 10.1038/s41591-020-1034-x
+OpenAlex Biblio      : Journal: Nature Medicine, Year: 2020
+OpenAlex Cited by    : 1100
+OpenAlex Type        : article
+OpenAlex IDs         : doi=https://doi.org/10.1038/s41591-020-1034-x; mag=3136552952; pmid=https://pubmed.ncbi.nlm.nih.gov/32908283
+OpenAlex Access      : Status: Open Access | PDF: https://www.nature.com/articles/s41591-020-1034-x.pdf | Landing: https://doi.org/10.1038/s41591-020-1034-x

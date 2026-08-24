@@ -1,0 +1,16 @@
+URL: https://doi.org/10.1038/s41433-022-02366-y
+FACT: Ramanathan A. — Artificial intelligence for the diagnosis of retinopathy of prematurity
+EXPECT: DOI 10.1038/s41433-022-02366-y
+DOI: 10.1038/s41433-022-02366-y
+STATUS: CONFIRMED
+SUCCESS: True
+
+======================================================================
+OpenAlex Title      : Artificial intelligence for the diagnosis of retinopathy of prematurity: A systematic review of current algorithms
+OpenAlex Authors     : Ashwin Ramanathan; Sam Athikarisamy; Geoffrey C. Lam
+OpenAlex DOI         : 10.1038/s41433-022-02366-y
+OpenAlex Biblio      : Journal: Eye, Year: 2022
+OpenAlex Cited by    : 36
+OpenAlex Type        : review
+OpenAlex IDs         : doi=https://doi.org/10.1038/s41433-022-02366-y; pmid=https://pubmed.ncbi.nlm.nih.gov/36577806
+OpenAlex Access      : Status: Closed | Landing: https://doi.org/10.1038/s41433-022-02366-y

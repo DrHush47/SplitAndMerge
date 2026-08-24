@@ -1,0 +1,16 @@
+URL: https://doi.org/10.1007/s00330-023-10543-0
+FACT: Grafe D. — Automated bone age assessment in a German pediatric cohort
+EXPECT: DOI 10.1007/s00330-023-10543-0
+DOI: 10.1007/s00330-023-10543-0
+STATUS: CONFIRMED
+SUCCESS: True
+
+======================================================================
+OpenAlex Title      : Automated bone age assessment in a German pediatric cohort: agreement between an artificial intelligence software and the manual Greulich and Pyle method
+OpenAlex Authors     : Daniel Gräfe; Anne Beeskow; Roland Pfäffle; Maciej Rosołowski; Tek Sin Chung et al.
+OpenAlex DOI         : 10.1007/s00330-023-10543-0
+OpenAlex Biblio      : Journal: European Radiology, Year: 2023
+OpenAlex Cited by    : 23
+OpenAlex Type        : article
+OpenAlex IDs         : doi=https://doi.org/10.1007/s00330-023-10543-0; pmid=https://pubmed.ncbi.nlm.nih.gov/38151536
+OpenAlex Access      : Status: Open Access | PDF: https://link.springer.com/content/pdf/10.1007/s00330-023-10543-0.pdf | Landing: https://doi.org/10.1007/s00330-023-10543-0

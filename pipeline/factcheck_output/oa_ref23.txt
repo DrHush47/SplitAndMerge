@@ -1,0 +1,10 @@
+URL: https://habr.com/ru/companies/yandex/articles/940552/
+FACT: Pozdnyakov A.V. — Автоматизация диагностики МРТ головного мозга новорожденных с помощью ИИ
+EXPECT: 
+DOI: N/A
+STATUS: SKIP
+SUCCESS: False
+ERROR: No DOI to look up
+
+======================================================================
+[Error: No DOI to look up]

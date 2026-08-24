@@ -1,0 +1,12 @@
+URL: https://doi.org/10.1126/science.aax2342
+FACT: Obermeyer Z. et al. Dissecting racial bias in an algorithm used to manage the health of populations. Science 2019
+EXPECT: DOI 10.1126/science.aax2342, Science 2019
+SUCCESS: False
+
+======================================================================
+
+
+
+--- LINKS ---
+  internal — []
+  external — []

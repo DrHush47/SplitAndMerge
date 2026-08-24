@@ -1,0 +1,3 @@
+This directory stores FireCrawl output files (*.md).
+It must exist before running from project root:
+  firecrawl scrape '<url>' -o pipeline/firecrawl/.firecrawl/<name>.md
