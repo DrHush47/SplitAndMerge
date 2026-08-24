@@ -25,5 +25,8 @@ targets_retry.json
 .vscode/
 .idea/
 
+# Freebuff session data — only local, never push to GitHub
+.freebuff/
+
 # Sync script — only local, never sync to GitHub
 sync.sh
