@@ -1,6 +1,20 @@
 # Split & Merge — конвейер редактуры + каскад фактчекинга
 
-Многоагентная система для редактуры научных текстов и верификации источников.
+Гибридный конвейер для редактуры научных текстов по ГОСТ/журнальным стандартам
+и автоматической верификации источников. Главная идея — не доверять LLM
+без программной проверки.
+
+**5 ролей** (Оркестратор, Рецензент, Текстовик, Технический исполнитель,
+Факт-чекер) работают по модели split-and-merge: задача разделяется на
+«творческие» и «механические» подзадачи, каждая идёт своему исполнителю,
+результаты собираются и валидируются.
+
+**10 этапов конвейера:** критический разбор → декомпозиция →
+сбор фактов → генерация → повторная верификация → рецензирование →
+сборка → механическая правка → программная вычитка → финальная проверка.
+
+**8 уровней фактчекинга** — от бесплатного OpenAlex до платного FireCrawl
+(только как резерв): ~95% проверок закрываются на бесплатных уровнях.
 
 ## Быстрый старт
 
@@ -33,21 +47,59 @@ firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
 
 | Файл | Назначение |
 |------|-----------|
+| [`docs/architecture.md`](pipeline/docs/architecture.md) | Архитектура конвейера — 5 ролей, 10 этапов, 7 принципов |
 | [`docs/knowledge.md`](pipeline/docs/knowledge.md) | Каскад веб-фактчекинга — 8 уровней, техконстанты, команды запуска |
-| [`docs/docx-protocol.md`](pipeline/docs/docx-protocol.md) | Протокол правки .docx — правила, шаблоны, антипаттерны |
-| [`docs/architecture.md`](pipeline/docs/architecture.md) | Архитектура конвейера — роли, этапы, принципы |
+| [`docs/docx-protocol.md`](pipeline/docs/docx-protocol.md) | Протокол правки .docx через python-docx — правила, шаблоны, антипаттерны |
+| [`docs/llm.md`](pipeline/docs/llm.md) | Prompt engineering — руководство по составлению промптов |
 | [`docs/notes.md`](pipeline/docs/notes.md) | Идеи, находки, MCP-серверы, инструменты |
+| [`docs/results.md`](pipeline/docs/results.md) | Шаблон отчёта факт-чекера |
+| [`docs/playwright.md`](pipeline/docs/playwright.md) | Standalone-референс Playwright MCP (Ур.2.5) |
 
 ## Структура проекта
 
 ```
-pipeline/
-├── docs/                  ← Документация
-├── crawl4ai/              ← Crawl4AI (Ур.2: базовый HTTP-парсинг)
-├── openalex/              ← OpenAlex API (Ур.0.5: валидация DOI)
-├── scrapling/             ← Scrapling (Ур.3: обход Cloudflare)
-├── firecrawl/             ← FireCrawl (Ур.4: платный резерв)
-├── common.py              ← Общие утилиты (prefix-валидация, чтение targets)
-├── requirements.txt       ← Python-зависимости
-└── targets.json           ← Цели для проверки (заполняется перед запуском)
+├── README.md                         ← Этот файл
+├── skills-lock.json                  ← Лок установленных навыков
+├── .gitignore / .editorconfig        ← Конфиги git и редактора
+├── .github/workflows/ci.yml          ← CI (ruff-линтинг)
+│
+├── .agents/                          ← Навыки и MCP-конфиг
+│   ├── mcp.json.example              ← Шаблон MCP-серверов
+│   └── skills/                       ← 6 навыков (docx, hush-docx, factcheck,
+│                                       find-skills, grilling, grill-me)
+│
+└── pipeline/                         ← Основной код конвейера
+    ├── __init__.py                   ← Пакет
+    ├── common.py                     ← Общие утилиты (prefix-валидация,
+    │                                    чтение targets.json)
+    ├── requirements.txt              ← Python-зависимости
+    ├── targets.json                  ← Цели для проверки (заполняется
+    │                                    перед запуском)
+    ├── playwright.md                 ← Standalone-референс Playwright MCP
+    │
+    ├── docs/                         ← Документация (7 файлов)
+    │   ├── architecture.md           ← Архитектура конвейера
+    │   ├── knowledge.md              ← Каскад фактчекинга
+    │   ├── docx-protocol.md          ← Протокол правки .docx
+    │   ├── llm.md                    ← Prompt engineering
+    │   ├── notes.md                  ← Идеи и находки
+    │   ├── results.md                ← Шаблон отчёта
+    │   └── playwright.md             ← Референс Playwright
+    │
+    ├── openalex/                     ← Ур.0.5 — валидация DOI
+    │   ├── factcheck_openalex.py     ← Скрипт: OpenAlex REST API
+    │   └── openalex.md               ← Референс команд
+    │
+    ├── crawl4ai/                     ← Ур.2 — базовый HTTP-парсинг
+    │   ├── factcheck_crawl4ai.py     ← Скрипт: Crawl4AI
+    │   └── .venv/                    ← Виртуальное окружение
+    │
+    ├── scrapling/                    ← Ур.3 — обход Cloudflare
+    │   ├── factcheck_scrapling.py    ← Скрипт: Scrapling StealthySession
+    │   └── scrapling.md              ← Референс команд
+    │
+    └── firecrawl/                    ← Ур.4 — платный резерв
+        ├── firecrawl.md              ← Референс команд
+        ├── .gitignore                ← Исключает output из git
+        └── .firecrawl/               ← Выходные файлы FireCrawl
 ```
