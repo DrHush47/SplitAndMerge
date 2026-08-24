@@ -1,0 +1,43 @@
+{
+  "_comment": "ШАБЛОН: скопируй этот файл в .agents/mcp.json и заполни API-ключи.",
+  "_comment2": "Файл .agents/mcp.json в .gitignore — ключи не попадут в git.",
+
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "_note": "Живая документация библиотек. Без API-ключа (опционально)."
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"],
+      "_note": "Интерактивный браузер: логин, формы, скриншоты. KEYLESS. Ур.2.5 каскада фактчекинга."
+    },
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"],
+      "_note": "Получение веб-контента. Бесплатно."
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."],
+      "_note": "Файловые операции. Бесплатно."
+    },
+    "e2b": {
+      "command": "npx",
+      "args": ["-y", "@e2b/mcp-server"],
+      "env": {
+        "E2B_API_KEY": "your-e2b-api-key-here"
+      },
+      "_note": "Изолированная microVM для запуска кода. Бесплатный тир: e2b.dev."
+    },
+    "exa": {
+      "command": "npx",
+      "args": ["-y", "exa-mcp-server"],
+      "env": {
+        "EXA_API_KEY": "your-exa-api-key-here"
+      },
+      "_note": "Семантический поиск. Бесплатный тир: https://exa.ai"
+    }
+  }
+}

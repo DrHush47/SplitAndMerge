@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Validate MCP config example
+        run: |
+          python -c "import json; json.load(open('.agents/mcp.json.example')); print('MCP example: OK')"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r pipeline/requirements.txt
+
+      - name: Lint Python
+        run: |
+          pip install ruff
+          ruff check pipeline/ --ignore E501
+
+      - name: Verify script imports (OpenAlex)
+        run: |
+          cd pipeline
+          python -c "from common import read_targets, validate_prefix, fix_windows_console; print('common: OK')"
+          python -c "import sys; sys.path.insert(0, '.'); from openalex.factcheck_openalex import extract_doi, lookup_doi; print('openalex: OK')"
