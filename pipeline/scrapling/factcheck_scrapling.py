@@ -144,9 +144,9 @@ def crawl_batch(targets, prefix, timeout, adaptive, css_selector, solve_cf):
                         else:
                             elements = page.css(css_selector)
                         text = '\n'.join(str(e) for e in elements) if elements else ''
-                        extractor = f'css+adaptive' if adaptive else f'css'
+                        extractor = 'css+adaptive' if adaptive else 'css'
                         success = bool(text.strip())
-                    except Exception as exc:
+                    except Exception as exc:  # noqa: BLE001 — intentional: catch any CSS parsing error and fall back to extract_text()
                         print(f"    css err: {exc}", flush=True)
                         text, extractor = extract_text(page)
                         success = bool(text.strip())
@@ -160,7 +160,7 @@ def crawl_batch(targets, prefix, timeout, adaptive, css_selector, solve_cf):
                 
                 print(f"    extract: {extractor}  len={len(text)}  success={success}", flush=True)
                 
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 — intentional: catch any fetch error (timeout, connection, etc.) and report
                 elapsed = time.time() - start_ts
                 exc_name = type(exc).__name__
                 if 'Timeout' in exc_name or 'timeout' in str(exc).lower():
