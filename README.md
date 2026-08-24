@@ -51,7 +51,6 @@ firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
 | [`docs/knowledge.md`](pipeline/docs/knowledge.md) | Каскад веб-фактчекинга — 8 уровней, техконстанты, команды запуска |
 | [`docs/docx-protocol.md`](pipeline/docs/docx-protocol.md) | Протокол правки .docx через python-docx — правила, шаблоны, антипаттерны |
 | [`docs/llm.md`](pipeline/docs/llm.md) | Prompt engineering — руководство по составлению промптов |
-| [`docs/notes.md`](pipeline/docs/notes.md) | Идеи, находки, MCP-серверы, инструменты |
 | [`docs/results.md`](pipeline/docs/results.md) | Шаблон отчёта факт-чекера |
 | [`docs/playwright.md`](pipeline/docs/playwright.md) | Standalone-референс Playwright MCP (Ур.2.5) |
 
@@ -61,12 +60,11 @@ firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
 ├── README.md                         ← Этот файл
 ├── skills-lock.json                  ← Лок установленных навыков
 ├── .gitignore / .editorconfig        ← Конфиги git и редактора
-├── .github/workflows/ci.yml          ← CI (ruff-линтинг)
 │
 ├── .agents/                          ← Навыки и MCP-конфиг
 │   ├── mcp.json.example              ← Шаблон MCP-серверов
-│   └── skills/                       ← 6 навыков (docx, hush-docx, factcheck,
-│                                       find-skills, grilling, grill-me)
+│   └── skills/                       ← 3 навыка (docx, hush-docx,
+│                                       find-skills)
 │
 └── pipeline/                         ← Основной код конвейера
     ├── __init__.py                   ← Пакет
@@ -77,12 +75,11 @@ firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
     │                                    перед запуском)
     ├── playwright.md                 ← Standalone-референс Playwright MCP
     │
-    ├── docs/                         ← Документация (7 файлов)
+    ├── docs/                         ← Документация (6 файлов)
     │   ├── architecture.md           ← Архитектура конвейера
     │   ├── knowledge.md              ← Каскад фактчекинга
     │   ├── docx-protocol.md          ← Протокол правки .docx
     │   ├── llm.md                    ← Prompt engineering
-    │   ├── notes.md                  ← Идеи и находки
     │   ├── results.md                ← Шаблон отчёта
     │   └── playwright.md             ← Референс Playwright
     │
