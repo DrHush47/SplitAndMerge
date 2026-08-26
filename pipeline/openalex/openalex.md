@@ -50,8 +50,8 @@
 
 ```json
 [
-  {"id": "ref01", "url": "https://doi.org/10.1038/s41591-018-0301-7", "fact": "Topol E.J. ...", "expect": "DOI 10.1038/s41591-018-0300-7"},
-  {"id": "ref02", "url": "https://www.nature.com/articles/s41591-018-0301-7", "fact": "...", "expect": "DOI 10.1038/s41591-018-0300-7"}
+  {"id": "ref01", "url": "https://doi.org/10.1038/s41591-018-0300-7", "fact": "Topol E.J. ...", "expect": "DOI 10.1038/s41591-018-0300-7"},
+  {"id": "ref02", "url": "https://www.nature.com/articles/s41591-018-0300-7", "fact": "...", "expect": "DOI 10.1038/s41591-018-0300-7"}
 ]
 ```
 
