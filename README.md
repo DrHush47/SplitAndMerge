@@ -50,8 +50,8 @@ firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
 | [`docs/architecture.md`](pipeline/docs/architecture.md) | Архитектура конвейера — 5 ролей, 10 этапов, 7 принципов |
 | [`docs/knowledge.md`](pipeline/docs/knowledge.md) | Каскад веб-фактчекинга — 7 уровней, техконстанты, команды запуска |
 | [`docs/docx-protocol.md`](pipeline/docs/docx-protocol.md) | Протокол правки .docx через python-docx — правила, шаблоны, антипаттерны |
-| [`docs/llm.md`](pipeline/docs/llm.md) | Prompt engineering — руководство по составлению промптов |
 | [`docs/results.md`](pipeline/docs/results.md) | Шаблон отчёта факт-чекера |
+| [`hush-prompt`](.agents/skills/hush-prompt/SKILL.md) | Prompt engineering — правила и шаблоны для LLM-промптов (заменил удалённый `docs/llm.md`) |
 
 
 ## Структура проекта
@@ -63,8 +63,8 @@ firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
 │
 ├── .agents/                          ← Навыки и MCP-конфиг
 │   ├── mcp.json.example              ← Шаблон MCP-серверов
-│   └── skills/                       ← 3 навыка (docx, hush-docx,
-│                                       find-skills)
+│   └── skills/                       ← 4 навыка (docx, hush-docx,
+│                                       hush-prompt, find-skills)
 │
 └── pipeline/                         ← Основной код конвейера
     ├── __init__.py                   ← Пакет
@@ -74,12 +74,11 @@ firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
     ├── targets.json                  ← Цели для проверки (заполняется
     │                                    перед запуском)
 
-    ├── docs/                         ← Документация (6 файлов)
+    ├── docs/                         ← Документация (4 файла)
     │   ├── architecture.md           ← Архитектура конвейера
     │   ├── knowledge.md              ← Каскад фактчекинга
     │   ├── docx-protocol.md          ← Протокол правки .docx
-    │   ├── llm.md                    ← Prompt engineering
-    │   ├── results.md                ← Шаблон отчёта
+    │   └── results.md                ← Шаблон отчёта
 
     ├── openalex/                     ← Ур.0.5 — валидация DOI
     │   ├── factcheck_openalex.py     ← Скрипт: OpenAlex REST API

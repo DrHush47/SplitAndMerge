@@ -150,5 +150,3 @@ Output: ...
 - OWASP: GenAI Security Project — LLM Top 10 (LLM01: Prompt Injection)
 - Исследования: The Prompt Report (Schulhoff), Prompting Considered Harmful, Tree of Thoughts, Self-Refine, Few-shot Dilemma
 - Инструменты: DSPy, Braintrust, LangSmith, Arize Phoenix, LLMLingua
-
-Полный текст с API-примерами и ссылками — в корневом `llm.md`.
