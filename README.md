@@ -53,7 +53,8 @@ firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
 | [`docs/architecture.md`](pipeline/docs/architecture.md) | Архитектура конвейера — 5 ролей, 10 этапов, 7 принципов |
 | [`docs/knowledge.md`](pipeline/docs/knowledge.md) | Каскад веб-фактчекинга — 7 уровней, техконстанты, команды запуска |
 | [`docs/docx-protocol.md`](pipeline/docs/docx-protocol.md) | Протокол правки .docx через python-docx — правила, шаблоны, антипаттерны |
-| [`hush-prompt`](.agents/skills/hush-prompt/SKILL.md) | Prompt engineering — правила и шаблоны для LLM-промптов (заменил удалённый `docs/llm.md`) |
+| [`docs/llm.md`](pipeline/docs/llm.md) | Полное руководство по prompt engineering — техники, шаблоны, безопасность (Anthropic, OpenAI, Google, Meta, OWASP) |
+| [`hush-prompt`](.agents/skills/hush-prompt/SKILL.md) | Prompt engineering — краткий рабочий свод правил и чеклист (полная теория — в `docs/llm.md`) |
 
 
 ## Структура проекта
@@ -76,10 +77,11 @@ firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
     ├── targets.json                  ← Цели для проверки (заполняется
     │                                    перед запуском)
 
-    ├── docs/                         ← Документация (3 файла)
+    ├── docs/                         ← Документация (4 файла)
     │   ├── architecture.md           ← Архитектура конвейера
     │   ├── knowledge.md              ← Каскад фактчекинга
-    │   └── docx-protocol.md          ← Протокол правки .docx
+    │   ├── docx-protocol.md          ← Протокол правки .docx
+    │   └── llm.md                    ← Prompt engineering (полное руководство)
 
     ├── openalex/                     ← Ур.0.5 — валидация DOI
     │   ├── factcheck_openalex.py     ← Скрипт: OpenAlex REST API
