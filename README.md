@@ -54,7 +54,6 @@ firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
 | [`docs/knowledge.md`](pipeline/docs/knowledge.md) | Каскад веб-фактчекинга — 7 уровней, техконстанты, команды запуска |
 | [`docs/docx-protocol.md`](pipeline/docs/docx-protocol.md) | Протокол правки .docx через python-docx — правила, шаблоны, антипаттерны |
 | [`docs/llm.md`](pipeline/docs/llm.md) | Полное руководство по prompt engineering — техники, шаблоны, безопасность (Anthropic, OpenAI, Google, Meta, OWASP) |
-| [`hush-prompt`](.agents/skills/hush-prompt/SKILL.md) | Prompt engineering — краткий рабочий свод правил и чеклист (полная теория — в `docs/llm.md`) |
 
 
 ## Структура проекта
@@ -65,9 +64,8 @@ firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
 ├── .gitignore / .editorconfig        ← Конфиги git и редактора
 │
 ├── .agents/                          ← Навыки и MCP-конфиг
-│   ├── mcp.json.example              ← Шаблон MCP-серверов
-│   └── skills/                       ← 4 навыка (docx, hush-docx,
-│                                       hush-prompt, find-skills)
+│   ├── mcp.json.example              ← Шаблон MCP-серверов    │   └── skills/                       ← 3 навыка (docx, hush-docx,
+    │                                       find-skills)
 │
 └── pipeline/                         ← Основной код конвейера
     ├── __init__.py                   ← Пакет
