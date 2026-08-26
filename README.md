@@ -37,7 +37,7 @@ python -m venv .venv
 firecrawl scrape 'https://...' -o workspace/firecrawl_<name>.md
 ```
 > Для Linux/Mac заменить `Scripts` на `bin`, а `python` на `python3` в путях к Python.
-(Примечание: флаги --out-dir появятся в issue B; дефолт и так станет workspace/.)
+(При необходимости укажите `--out-dir`, чтобы записать результаты в другой каталог.)
 
 ## Документация
 
