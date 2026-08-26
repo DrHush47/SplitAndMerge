@@ -56,6 +56,7 @@ firecrawl scrape 'https://...' -o workspace/firecrawl_<name>.md
 ├── skills-lock.json                  ← Лок внешних навыков (hush-* — локально)
 ├── .gitignore / .editorconfig        ← Конфиги git и редактора
 ├── .venv/                            ← Виртуальное окружение (вне git)
+├── workspace/                        ← Рантайм-артефакты (вне git)
 │
 ├── .agents/                          ← Навыки и MCP-конфиг
 │   ├── mcp.json.example              ← Шаблон MCP-серверов    │   └── skills/                       ← 3 навыка (docx, hush-docx,
@@ -87,7 +88,5 @@ firecrawl scrape 'https://...' -o workspace/firecrawl_<name>.md
     │   └── scrapling.md              ← Референс команд
     │
     └── firecrawl/                    ← Ур.4 — платный резерв
-        ├── firecrawl.md              ← Референс команд
-        ├── .gitignore                ← Исключает output из git
-        └── .firecrawl/               ← Выходные файлы FireCrawl
+        └── firecrawl.md              ← Референс команд
 ```

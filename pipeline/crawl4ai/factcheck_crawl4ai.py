@@ -32,8 +32,8 @@ import sys
 from pathlib import Path
 
 # Shared pipeline utilities (pipeline/common.py)
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from common import read_targets, validate_prefix, fix_windows_console
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from common import read_targets, validate_prefix, fix_windows_console, default_out_dir
 
 from crawl4ai import AsyncWebCrawler, CacheMode
 
@@ -100,6 +100,7 @@ async def main_async(args):
     fix_windows_console()
     targets = read_targets(Path(args.targets))
     print(f"Loaded {len(targets)} targets from {args.targets}", flush=True)
+    out_dir = Path(args.out_dir) if args.out_dir else default_out_dir()
 
     results = {}
     async with AsyncWebCrawler() as crawler:
@@ -113,7 +114,7 @@ async def main_async(args):
                 "success": success,
                 "error":   error,
             }
-            fname = Path(__file__).parent / f"{args.prefix}_{t['id']}.txt"
+            fname = out_dir / f"{args.prefix}_{t['id']}.txt"
             fname.parent.mkdir(parents=True, exist_ok=True)
             with open(fname, "w", encoding="utf-8") as f:
                 f.write(f"URL: {t['url']}\n")
@@ -152,6 +153,7 @@ def main():
     ap.add_argument("--no-cache", action="store_true", help="disable cache (default: cache ON)")
     ap.add_argument("--js-code",  default=None, help="JavaScript to inject after page load")
     ap.add_argument("--session",  default=None, help="Session ID for cookie persistence across URLs")
+    ap.add_argument("--out-dir",  default=None, help="output directory (default: <repo>/workspace)")
     args = ap.parse_args()
     validate_prefix(args.prefix)
     try:

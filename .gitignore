@@ -11,15 +11,8 @@ __pycache__/
 # Virtual environment
 .venv/
 
-# Crawler output files
-pipeline/crawl4ai/crawl_*.txt
-pipeline/crawl4ai/fc_*.txt
-pipeline/crawl4ai/fc2_*.txt
-pipeline/openalex/oa_*.txt
-pipeline/openalex/oa2_*.txt
-pipeline/scrapling/sc_*.txt
-pipeline/firecrawl/.firecrawl/*.md
-targets_retry.json
+# Runtime artifacts (factcheck outputs, session files)
+workspace/
 
 # IDE
 .vscode/

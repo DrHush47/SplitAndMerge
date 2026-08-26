@@ -27,8 +27,8 @@ import time
 from pathlib import Path
 
 # Shared pipeline utilities (pipeline/common.py)
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from common import read_targets, validate_prefix, fix_windows_console
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from common import read_targets, validate_prefix, fix_windows_console, default_out_dir
 
 from scrapling.fetchers import StealthySession
 
@@ -84,9 +84,9 @@ def extract_text(page):
 
 # =================== ОСНОВНОЙ ЦИКЛ ===================
 
-def _save_result(target, text, success, error, extractor, prefix, status_code):
+def _save_result(target, text, success, error, extractor, prefix, status_code, out_dir):
     """Сохранить результат в файл."""
-    fname = Path(__file__).parent / f"{prefix}_{target['id']}.txt"
+    fname = Path(out_dir) / f"{prefix}_{target['id']}.txt"
     fname.parent.mkdir(parents=True, exist_ok=True)
     
     original_len = len(text)
@@ -111,7 +111,7 @@ def _save_result(target, text, success, error, extractor, prefix, status_code):
     return fname
 
 
-def crawl_batch(targets, prefix, timeout, adaptive, css_selector, solve_cf):
+def crawl_batch(targets, prefix, timeout, adaptive, css_selector, solve_cf, out_dir):
     """Batch-парсинг URL через StealthySession.
     
     StealthySession держит браузер открытым между запросами — 
@@ -176,7 +176,7 @@ def crawl_batch(targets, prefix, timeout, adaptive, css_selector, solve_cf):
                 status_code = None
             
             # Сохраняем результат
-            fname = _save_result(target, text, success, error, extractor, prefix, status_code)
+            fname = _save_result(target, text, success, error, extractor, prefix, status_code, out_dir)
             print(f"    saved  : {fname}", flush=True)
             
             results[tid] = {
@@ -205,6 +205,8 @@ def main():
                     help="Optional CSS selector to extract specific content (e.g. '.article-abstract')")
     ap.add_argument("--no-cloudflare", action="store_true",
                     help="Disable Cloudflare Turnstile solving (faster for simple sites)")
+    ap.add_argument("--out-dir", default=None,
+                    help="output directory (default: <repo>/workspace)")
     args = ap.parse_args()
     
     fix_windows_console()
@@ -212,8 +214,10 @@ def main():
     validate_prefix(args.prefix)
     targets = read_targets(Path(args.targets))
     print(f"Loaded {len(targets)} targets from {args.targets}", flush=True)
+    out_dir = Path(args.out_dir) if args.out_dir else default_out_dir()
     print(f"Settings: timeout={args.timeout}s, adaptive={args.adaptive}, "
-          f"css_selector={args.css_selector}, solve_cloudflare={not args.no_cloudflare}", flush=True)
+          f"css_selector={args.css_selector}, solve_cloudflare={not args.no_cloudflare}, "
+          f"out-dir={out_dir}", flush=True)
     
     results = crawl_batch(
         targets=targets,
@@ -222,6 +226,7 @@ def main():
         adaptive=args.adaptive,
         css_selector=args.css_selector,
         solve_cf=not args.no_cloudflare,
+        out_dir=out_dir,
     )
     
     # Summary

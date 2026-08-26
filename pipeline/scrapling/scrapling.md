@@ -39,7 +39,7 @@
 ../.venv/bin/python scrapling/factcheck_scrapling.py --targets targets.json --prefix sc --timeout 90
 ```
 
-Результат: `scrapling/sc_{id}.txt` для каждого URL.
+Результат: `workspace/sc_{id}.txt` для каждого URL.
 
 ---
 
@@ -76,7 +76,7 @@
 |---|---|
 | **venv** | корневой: `../.venv/Scripts/python.exe` (Windows) / `../.venv/bin/python` (Linux/Mac) |
 | **Скрипт** | `scrapling/factcheck_scrapling.py` |
-| **Выходные файлы** | `scrapling/{prefix}_{id}.txt` |
+| **Выходные файлы** | `workspace/{prefix}_{id}.txt` |
 | **Таймаут** | `--timeout` в секундах → `* 1000` для Playwright (ms) |
 | **Браузеры** | `%USERPROFILE%\AppData\Local\ms-playwright\` (Windows) |
 | **Стоимость** | Бесплатно (локальный Playwright) |
@@ -184,7 +184,7 @@ STATUS: 200
 ### Adaptive-парсинг с CSS-селектором
 ```bash
 ../.venv/Scripts/python.exe scrapling/factcheck_scrapling.py \
-  --targets targets_retry.json --prefix sc2 \
+  --targets workspace/targets_retry.json --prefix sc2 \
   --adaptive --css-selector "body"
 ```
 

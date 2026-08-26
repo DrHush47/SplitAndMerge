@@ -20,8 +20,8 @@ import urllib.error
 from pathlib import Path
 
 # Import shared utilities from scripts/common.py
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from common import read_targets, validate_prefix, fix_windows_console
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from common import read_targets, validate_prefix, fix_windows_console, default_out_dir
 
 MAX_TEXT_CHARS = 50_000
 TRUNCATE_KEEP_CHARS = 2_000
@@ -29,7 +29,6 @@ DOI_URL_RE = re.compile(r"doi\.org/(10\.[^/?#]+/[^/?#]+)")
 DOI_EXPECT_RE = re.compile(r"(?:DOI|doi)\s*(10\.[^\s,;)\]]+)", re.IGNORECASE)
 OPENALEX_URL = "https://api.openalex.org/works/https://doi.org/{}"
 _DEFAULT_MAILTO = "factcheck@example.com"
-_DEFAULT_OUT_DIR = "./factcheck_output"
 
 
 # =================== ИЗВЛЕЧЕНИЕ DOI ===================
@@ -258,13 +257,14 @@ def _save_result(target, doi, data, error, status, prefix, out_dir):
 
 # =================== ОСНОВНОЙ ЦИКЛ ===================
 
-def batch_lookup(targets, prefix, timeout, mailto, out_dir=_DEFAULT_OUT_DIR, crosscheck=True):
+def batch_lookup(targets, prefix, timeout, mailto, out_dir=None, crosscheck=True):
     """Пакетный lookup DOI через OpenAlex API.
 
     crosscheck=True (по умолчанию): сверять fact-строку с метаданными OpenAlex
     и выдавать MISMATCH при расхождении.
     crosscheck=False: только проверка существования DOI (старый режим).
     """
+    out_dir = Path(out_dir) if out_dir else default_out_dir()
     results = {}
     doi_count = 0
     skip_count = 0
@@ -359,8 +359,8 @@ def main():
     ap.add_argument("--timeout", type=int, default=15, help="per-request timeout (s) (default: 15)")
     ap.add_argument("--mailto", default=_DEFAULT_MAILTO,
                     help=f"email for OpenAlex Polite Pool (default: {_DEFAULT_MAILTO})")
-    ap.add_argument("--out-dir", default=_DEFAULT_OUT_DIR,
-                    help=f"output directory (default: {_DEFAULT_OUT_DIR})")
+    ap.add_argument("--out-dir", default=None,
+                    help="output directory (default: <repo>/workspace)")
     ap.add_argument("--no-crosscheck", action="store_true",
                     help="Disable fact-vs-metadata cross-check (all existing DOIs → CONFIRMED)")
     args = ap.parse_args()
@@ -370,9 +370,10 @@ def main():
 
     targets = read_targets(Path(args.targets), validate_url_https=False)
     print(f"Loaded {len(targets)} targets from {args.targets}", flush=True)
-    print(f"Settings: timeout={args.timeout}s, prefix={args.prefix}, out-dir={args.out_dir}", flush=True)
+    out_dir = Path(args.out_dir) if args.out_dir else default_out_dir()
+    print(f"Settings: timeout={args.timeout}s, prefix={args.prefix}, out-dir={out_dir}", flush=True)
 
-    batch_lookup(targets, args.prefix, args.timeout, args.mailto, args.out_dir,
+    batch_lookup(targets, args.prefix, args.timeout, args.mailto, out_dir,
                  crosscheck=not args.no_crosscheck)
 
 

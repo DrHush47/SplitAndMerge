@@ -42,7 +42,7 @@
 ../.venv/Scripts/python.exe openalex/factcheck_openalex.py --targets targets.json --prefix oa --mailto your@email.com
 ```
 
-Результат: `openalex/oa_{id}.txt` для каждого URL с DOI.
+Результат: `workspace/oa_{id}.txt` для каждого URL с DOI.
 
 ---
 
@@ -82,7 +82,7 @@
 |---|---|
 | **venv** | корневой: `../.venv/Scripts/python.exe` (Windows) / `../.venv/bin/python` (Linux/Mac) |
 | **Скрипт** | `openalex/factcheck_openalex.py` |
-| **Выходные файлы** | `openalex/{prefix}_{id}.txt` |
+| **Выходные файлы** | `workspace/{prefix}_{id}.txt` |
 | **Таймаут** | 15 сек (REST API, быстро) |
 | **Зависимости** | Только стандартная библиотека (`urllib.request`) |
 | **Стоимость** | Бесплатно (OpenAlex CC0, без API-ключа, без регистрации) |

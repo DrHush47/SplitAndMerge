@@ -3,7 +3,7 @@
 > **Standalone-референс для агента.** В новой сессии без контекста — читай этот документ.
 > **Инструмент:** `firecrawl` CLI (платный, резерв — только если Scrapling не справился).
 > **Вендор:** [firecrawl.dev](https://firecrawl.dev)
-> **Проектные настройки:** вывод — в `pipeline/firecrawl/.firecrawl/`, не в `./.firecrawl/`. См. `../docs/knowledge.md` §0.5.
+> **Проектные настройки:** вывод — в `workspace/` (вне git). См. `../docs/knowledge.md` §0.1.
 
 ## Роль в каскаде
 
@@ -40,7 +40,7 @@ firecrawl --status
 firecrawl credit-usage
 
 # Скрапинг URL в проектную директорию
-firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
+firecrawl scrape 'https://...' -o workspace/firecrawl_<name>.md
 ```
 
 ---
@@ -50,7 +50,7 @@ firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
 | Параметр | Значение |
 |---|---|
 | **CLI** | `firecrawl` (глобально после `npx init`) |
-| **Выходные файлы** | `pipeline/firecrawl/.firecrawl/<name>.md` |
+| **Выходные файлы** | `workspace/firecrawl_<name>.md` |
 | **Таймаут** | Определяется CLI (~30-60 сек на URL) |
 | **Стоимость** | Платные кредиты (проверять: `firecrawl credit-usage`) |
 | **Markdown** | ✅ Встроенная конвертация (в отличие от Scrapling) |
@@ -75,7 +75,7 @@ firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
 
 ```bash
 firecrawl credit-usage
-firecrawl credit-usage --json --pretty -o pipeline/firecrawl/.firecrawl/credits.json
+firecrawl credit-usage --json --pretty -o workspace/firecrawl_credits.json
 ```
 
 Цифры записать в `results.md` (секция «Кредиты FireCrawl»). НЕ придумывать — только из вывода команды.

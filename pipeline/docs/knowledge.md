@@ -39,17 +39,12 @@
 - **Запуск OpenAlex:** `.venv/Scripts/python.exe pipeline/openalex/factcheck_openalex.py --targets pipeline/targets.json --prefix oa --timeout 15`
 - **Запуск Crawl4AI:** `.venv/Scripts/python.exe pipeline/crawl4ai/factcheck_crawl4ai.py --targets pipeline/targets.json --prefix <prefix> --timeout 45`
 - **Запуск Scrapling:** `.venv/Scripts/python.exe pipeline/scrapling/factcheck_scrapling.py --targets pipeline/targets.json --prefix sc --timeout 90`
-- **Выходные файлы OpenAlex:** сохраняются в `pipeline/openalex/<prefix>_<id>.txt` (формат совместим с Crawl4AI).
-- **Выходные файлы Crawl4AI:** сохраняются в `pipeline/crawl4ai/<prefix>_<id>.txt` (скрипт пишет в свою папку).
-- **Выходные файлы Scrapling:** сохраняются в `pipeline/scrapling/<prefix>_<id>.txt` (формат совместим с Crawl4AI).
-- **Выходные файлы FireCrawl:** сохраняются в `pipeline/firecrawl/.firecrawl/` через `-o pipeline/firecrawl/.firecrawl/<name>.md`. Директория `.firecrawl/` уже существует внутри `pipeline/firecrawl/` и добавлена в `.gitignore` — **НЕ создавай новых директорий, используй готовую.**
+- **Выходные файлы (все уровни):** `workspace/{prefix}_{id}.txt` — OpenAlex (`oa_*`), Crawl4AI (`crawl_*`), Scrapling (`sc_*`); FireCrawl — `workspace/firecrawl_<name>.md` через `-o workspace/firecrawl_<name>.md`. Директория `workspace/` — в корне репо, вне git. **НЕ создавай других каталогов для артефактов.**
 - **Проверка кредитов FireCrawl:** `firecrawl credit-usage`
 - **Полный референс команд OpenAlex:** см. [`openalex.md`](../openalex/openalex.md)
 - **Полный референс команд Scrapling:** см. [`scrapling.md`](../scrapling/scrapling.md)
 - **Полный референс команд FireCrawl:** см. [`firecrawl.md`](../firecrawl/firecrawl.md)
-- **Очистка временных файлов Crawl4AI после сеанса:** удалить `pipeline/crawl4ai/{prefix}_*.txt` (по умолчанию `crawl_*.txt`; также `fc_*.txt`, `fc2_*.txt` — исторические префиксы) и `targets_retry.json` если создавался. Сами результаты уже в `results.md`.
-- **Очистка временных файлов Scrapling после сеанса:** удалить `pipeline/scrapling/sc_*.txt`.
-- **Очистка временных файлов OpenAlex после сеанса:** удалить `pipeline/openalex/oa_*.txt`.
+- **Очистка временных файлов после сеанса:** удалить `workspace/` целиком (или только `{prefix}_*.txt` внутри неё). Если создавался `targets_retry.json` — он тоже лежит в `workspace/`. Сами результаты уже в `results.md`.
 - **python-docx:** устанавливается через `pip install python-docx`. Использует стандартный Python (или корневой .venv, если python-docx установлен там).
 
 ### 0.2 OpenAlex API (Ур.0.5 каскада — программная валидация DOI)
@@ -74,7 +69,7 @@ API (проверено на OpenAlex REST API, CC0):
 - **Скрипт-раннер:** `pipeline/openalex/factcheck_openalex.py`
 - **Запуск:** `.venv/Scripts/python.exe pipeline/openalex/factcheck_openalex.py --targets pipeline/targets.json --prefix oa --timeout 15`
 - **Аргументы:** `--targets`, `--prefix` (default: `oa`), `--timeout` (сек, default: 15), `--mailto` (email для Polite Pool)
-- **Выходные файлы:** `pipeline/openalex/{prefix}_{id}.txt` (формат совместим с Crawl4AI)
+- **Выходные файлы:** `workspace/{prefix}_{id}.txt` (формат совместим с Crawl4AI)
 - **Таймаут:** 15 сек на запрос (API, быстро)
 - **Зависимости:** только стандартная библиотека (urllib.request)
 - **Стоимость:** бесплатно (OpenAlex CC0, без ключа)
@@ -106,7 +101,7 @@ API (проверено на scrapling v0.4.11):
 - **Скрипт-раннер:** `pipeline/scrapling/factcheck_scrapling.py`
 - **Запуск:** `.venv/Scripts/python.exe pipeline/scrapling/factcheck_scrapling.py --targets pipeline/targets.json --prefix sc --timeout 90`
 - **Аргументы:** `--targets`, `--prefix` (default: `sc`), `--timeout` (сек, default: 90), `--adaptive`, `--css-selector`, `--no-cloudflare`
-- **Выходные файлы:** `pipeline/scrapling/{prefix}_{id}.txt` (формат совместим с Crawl4AI)
+- **Выходные файлы:** `workspace/{prefix}_{id}.txt` (формат совместим с Crawl4AI)
 - **Таймаут:** 90 сек на URL (браузер медленнее HTTP). Конвертится в ms внутри скрипта.
 - **Браузеры:** `%USERPROFILE%\AppData\Local\ms-playwright\` (Windows)
 - **Стоимость:** бесплатно (локальный Playwright, не расходует кредиты FireCrawl)
@@ -121,7 +116,7 @@ API (проверено на scrapling v0.4.11):
 - Требуется гарантированный markdown-вывод (Scrapling не имеет `page.markdown`)
 
 Использование:
-- `firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md`
+- `firecrawl scrape 'https://...' -o workspace/firecrawl_<name>.md`
 - `firecrawl credit-usage` — **обязательно** в конце каждого сеанса
 - См. [`firecrawl.md`](../firecrawl/firecrawl.md) для полного референса
 
