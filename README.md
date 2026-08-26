@@ -44,7 +44,8 @@ firecrawl scrape 'https://...' -o workspace/firecrawl_<name>.md
 | Файл | Назначение |
 |------|-----------|
 | [`docs/architecture.md`](pipeline/docs/architecture.md) | Архитектура конвейера — 5 ролей, 10 этапов, 7 принципов |
-| [`docs/knowledge.md`](pipeline/docs/knowledge.md) | Каскад веб-фактчекинга — 7 уровней, техконстанты, команды запуска |
+| [`docs/knowledge.md`](pipeline/docs/knowledge.md) | Каскад веб-фактчекинга — техконстанты, команды запуска |
+| [`docs/cascade.md`](pipeline/docs/cascade.md) | Единый источник схемы каскада — 7 уровней, правила эскалации, словарь вердиктов |
 | [`docs/docx-protocol.md`](pipeline/docs/docx-protocol.md) | Протокол правки .docx через python-docx — правила, шаблоны, антипаттерны |
 | [`docs/llm.md`](pipeline/docs/llm.md) | Полное руководство по prompt engineering — техники, шаблоны, безопасность (Anthropic, OpenAI, Google, Meta, OWASP) |
 
@@ -70,9 +71,10 @@ firecrawl scrape 'https://...' -o workspace/firecrawl_<name>.md
     ├── targets.json                  ← Цели для проверки (заполняется
     │                                    перед запуском)
 
-    ├── docs/                         ← Документация (4 файла)
+    ├── docs/                         ← Документация (5 файлов)
     │   ├── architecture.md           ← Архитектура конвейера
     │   ├── knowledge.md              ← Каскад фактчекинга
+    │   ├── cascade.md                ← Единый источник схемы каскада
     │   ├── docx-protocol.md          ← Протокол правки .docx
     │   └── llm.md                    ← Prompt engineering (полное руководство)
 

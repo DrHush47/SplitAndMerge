@@ -7,15 +7,7 @@
 
 ## Роль в каскаде
 
-```
-Ур.0.5 → OpenAlex API           (мгновенная проверка DOI)
-Ур.1   → researcher-web         (поиск фактов)
-Ур.2   → Crawl4AI               (базовый HTTP-парсинг)
-Ур.3   → Scrapling StealthySession (обход Cloudflare, бесплатно)
-Ур.4   → FireCrawl              ← ТЫ ЗДЕСЬ (платный резерв)
-Ур.5   → Человек                (ручная верификация)
-Ур.6   → Gemini DeepSearch      (опционально)
-```
+> **Место в каскаде:** Ур.4 — FireCrawl (платный резерв). Полная схема эскалации: [`../docs/cascade.md`](../docs/cascade.md)
 
 **Когда применять:**
 - Scrapling (Ур.3) вернул EMPTY/ERROR/пустой контент

@@ -8,15 +8,7 @@
 
 ## Роль в каскаде
 
-```
-Ур.0.5 → OpenAlex API           ← ТЫ ЗДЕСЬ (бесплатно, мгновенная проверка DOI)
-Ур.1   → researcher-web         (поиск фактов)
-Ур.2   → Crawl4AI               (базовый HTTP-парсинг)
-Ур.3   → Scrapling StealthySession (обход Cloudflare, бесплатно)
-Ур.4   → FireCrawl              (резерв, платный)
-Ур.5   → Человек                (ручная верификация)
-Ур.6   → Gemini DeepSearch      (опционально)
-```
+> **Место в каскаде:** Ур.0.5 — OpenAlex API (программная валидация DOI). Полная схема эскалации: [`../docs/cascade.md`](../docs/cascade.md)
 
 **Когда применять OpenAlex:**
 - **Всегда первым делом** для URL, содержащих `doi.org` или DOI в поле `expect`
