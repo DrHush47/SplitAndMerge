@@ -2,7 +2,7 @@
 
 > **Standalone-референс для агента.** В новой сессии без контекста — читай этот документ.
 > **Основной инструмент:** `openalex/factcheck_openalex.py`
-> **Пути:** относительно папки `pipeline/`. Для запуска из корня проекта — `./pipeline/crawl4ai/.venv/...` (см. `../docs/knowledge.md` §0.1).
+> **Пути:** относительно папки `pipeline/` (venv — корневой: `../.venv/Scripts/python.exe`). Для запуска из корня проекта — `.venv/Scripts/python.exe` (см. `../docs/knowledge.md` §0.1).
 > **Вендор:** [openalex.org](https://openalex.org) — открытый индекс научных работ (CC0)
 > **Лицензия:** CC0 (данные), MIT (скрипт)
 
@@ -33,13 +33,13 @@
 
 ```bash
 # Windows
-./crawl4ai/.venv/Scripts/python.exe openalex/factcheck_openalex.py --targets targets.json --prefix oa --timeout 15
+../.venv/Scripts/python.exe openalex/factcheck_openalex.py --targets targets.json --prefix oa --timeout 15
 
 # Linux/Mac
-./crawl4ai/.venv/bin/python openalex/factcheck_openalex.py --targets targets.json --prefix oa --timeout 15
+../.venv/bin/python openalex/factcheck_openalex.py --targets targets.json --prefix oa --timeout 15
 
 # С кастомным email для Polite Pool (100k запросов/день)
-./crawl4ai/.venv/Scripts/python.exe openalex/factcheck_openalex.py --targets targets.json --prefix oa --mailto your@email.com
+../.venv/Scripts/python.exe openalex/factcheck_openalex.py --targets targets.json --prefix oa --mailto your@email.com
 ```
 
 Результат: `openalex/oa_{id}.txt` для каждого URL с DOI.
@@ -80,7 +80,7 @@
 
 | Параметр | Значение |
 |---|---|
-| **venv** | `./crawl4ai/.venv/Scripts/python.exe` (Windows) / `./crawl4ai/.venv/bin/python` (Linux/Mac) |
+| **venv** | корневой: `../.venv/Scripts/python.exe` (Windows) / `../.venv/bin/python` (Linux/Mac) |
 | **Скрипт** | `openalex/factcheck_openalex.py` |
 | **Выходные файлы** | `openalex/{prefix}_{id}.txt` |
 | **Таймаут** | 15 сек (REST API, быстро) |

@@ -2,7 +2,7 @@
 
 > **Standalone-референс для агента.** В новой сессии без контекста — читай этот документ.
 > **Основной инструмент:** `scrapling/factcheck_scrapling.py`
-> **Пути:** относительно папки `pipeline/`. Для запуска из корня проекта — `./pipeline/crawl4ai/.venv/...` (см. `../docs/knowledge.md` §0.1).
+> **Пути:** относительно папки `pipeline/` (venv — корневой: `../.venv/Scripts/python.exe`). Для запуска из корня проекта — `.venv/Scripts/python.exe` (см. `../docs/knowledge.md` §0.1).
 > **Вендор:** [github.com/D4Vinci/Scrapling](https://github.com/D4Vinci/Scrapling) v0.4.11
 > **Лицензия:** BSD-3-Clause
 
@@ -33,10 +33,10 @@
 
 ```bash
 # Windows
-./crawl4ai/.venv/Scripts/python.exe scrapling/factcheck_scrapling.py --targets targets.json --prefix sc --timeout 90
+../.venv/Scripts/python.exe scrapling/factcheck_scrapling.py --targets targets.json --prefix sc --timeout 90
 
 # Linux/Mac
-./crawl4ai/.venv/bin/python scrapling/factcheck_scrapling.py --targets targets.json --prefix sc --timeout 90
+../.venv/bin/python scrapling/factcheck_scrapling.py --targets targets.json --prefix sc --timeout 90
 ```
 
 Результат: `scrapling/sc_{id}.txt` для каждого URL.
@@ -74,7 +74,7 @@
 
 | Параметр | Значение |
 |---|---|
-| **venv** | `./crawl4ai/.venv/Scripts/python.exe` (Windows) / `./crawl4ai/.venv/bin/python` (Linux/Mac) |
+| **venv** | корневой: `../.venv/Scripts/python.exe` (Windows) / `../.venv/bin/python` (Linux/Mac) |
 | **Скрипт** | `scrapling/factcheck_scrapling.py` |
 | **Выходные файлы** | `scrapling/{prefix}_{id}.txt` |
 | **Таймаут** | `--timeout` в секундах → `* 1000` для Playwright (ms) |
@@ -177,20 +177,20 @@ STATUS: 200
 
 ### Базовый запуск
 ```bash
-./crawl4ai/.venv/Scripts/python.exe scrapling/factcheck_scrapling.py \
+../.venv/Scripts/python.exe scrapling/factcheck_scrapling.py \
   --targets targets.json --prefix sc --timeout 90
 ```
 
 ### Adaptive-парсинг с CSS-селектором
 ```bash
-./crawl4ai/.venv/Scripts/python.exe scrapling/factcheck_scrapling.py \
+../.venv/Scripts/python.exe scrapling/factcheck_scrapling.py \
   --targets targets_retry.json --prefix sc2 \
   --adaptive --css-selector "body"
 ```
 
 ### Без Cloudflare (быстрее)
 ```bash
-./crawl4ai/.venv/Scripts/python.exe scrapling/factcheck_scrapling.py \
+../.venv/Scripts/python.exe scrapling/factcheck_scrapling.py \
   --targets targets.json --prefix sc_fast --timeout 30 --no-cloudflare
 ```
 

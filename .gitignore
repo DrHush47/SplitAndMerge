@@ -9,7 +9,7 @@ __pycache__/
 *.pyc
 
 # Virtual environment
-pipeline/crawl4ai/.venv/
+.venv/
 
 # Crawler output files
 pipeline/crawl4ai/crawl_*.txt

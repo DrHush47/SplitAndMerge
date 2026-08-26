@@ -19,32 +19,25 @@
 (только как резерв): ~95% проверок закрываются на бесплатных уровнях.
 
 ## Быстрый старт
-
 ```bash
 # 1. Настроить MCP-конфиг
 cp .agents/mcp.json.example .agents/mcp.json
 
-# 2. Создать venv (.venv не хранится в репо) и установить зависимости
-python -m venv pipeline/crawl4ai/.venv
-./pipeline/crawl4ai/.venv/Scripts/python.exe -m pip install -r pipeline/requirements.txt
+# 2. Создать venv в КОРНЕ проекта и установить зависимости
+python -m venv .venv
+.venv/Scripts/python.exe -m pip install -r pipeline/requirements.txt      # Windows
+# .venv/bin/python -m pip install -r pipeline/requirements.txt            # Linux/Mac
 
-# 3. Заполнить targets.json ссылками для проверки
-# 4. Запустить каскад фактчекинга
+# 3. Заполнить pipeline/targets.json ссылками для проверки
+# 4. Запустить каскад фактчекинга (артефакты пишутся в workspace/)
 
-# OpenAlex (Ур.0.5 — проверка DOI):
-./pipeline/crawl4ai/.venv/Scripts/python.exe pipeline/openalex/factcheck_openalex.py --targets pipeline/targets.json --prefix oa --timeout 15
-
-# Crawl4AI (Ур.2 — базовый парсинг):
-./pipeline/crawl4ai/.venv/Scripts/python.exe pipeline/crawl4ai/factcheck_crawl4ai.py --targets pipeline/targets.json --prefix crawl --timeout 45
-
-# Scrapling (Ур.3 — обход Cloudflare):
-./pipeline/crawl4ai/.venv/Scripts/python.exe pipeline/scrapling/factcheck_scrapling.py --targets pipeline/targets.json --prefix sc --timeout 90
-
-# FireCrawl (Ур.4 — платный резерв):
-firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
+.venv/Scripts/python.exe pipeline/openalex/factcheck_openalex.py --targets pipeline/targets.json --prefix oa --timeout 15
+.venv/Scripts/python.exe pipeline/crawl4ai/factcheck_crawl4ai.py --targets pipeline/targets.json --prefix crawl --timeout 45
+.venv/Scripts/python.exe pipeline/scrapling/factcheck_scrapling.py --targets pipeline/targets.json --prefix sc --timeout 90
+firecrawl scrape 'https://...' -o workspace/firecrawl_<name>.md
 ```
-
 > Для Linux/Mac заменить `Scripts` на `bin`, а `python` на `python3` в путях к Python.
+(Примечание: флаги --out-dir появятся в issue B; дефолт и так станет workspace/.)
 
 ## Документация
 
@@ -62,6 +55,7 @@ firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
 ├── README.md                         ← Этот файл
 ├── skills-lock.json                  ← Лок внешних навыков (hush-* — локально)
 ├── .gitignore / .editorconfig        ← Конфиги git и редактора
+├── .venv/                            ← Виртуальное окружение (вне git)
 │
 ├── .agents/                          ← Навыки и MCP-конфиг
 │   ├── mcp.json.example              ← Шаблон MCP-серверов    │   └── skills/                       ← 3 навыка (docx, hush-docx,
@@ -86,8 +80,7 @@ firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
     │   └── openalex.md               ← Референс команд
     │
     ├── crawl4ai/                     ← Ур.2 — базовый HTTP-парсинг
-    │   ├── factcheck_crawl4ai.py     ← Скрипт: Crawl4AI
-    │   └── .venv/                    ← Виртуальное окружение
+    │   └── factcheck_crawl4ai.py     ← Скрипт: Crawl4AI
     │
     ├── scrapling/                    ← Ур.3 — обход Cloudflare
     │   ├── factcheck_scrapling.py    ← Скрипт: Scrapling StealthySession

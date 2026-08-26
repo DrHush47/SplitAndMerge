@@ -35,10 +35,10 @@
 > - Crawl4AI и Scrapling: `MAX_TEXT_CHARS = 200_000`, `TRUNCATE_KEEP_CHARS = 1_500` — парсят полные HTML-страницы (могут быть очень большими), 1500 символов достаточно для Cloudflare-заглушек и error-страниц.
 > - OpenAlex: `MAX_TEXT_CHARS = 50_000`, `TRUNCATE_KEEP_CHARS = 2_000` — ответы API это структурированный JSON, всегда компактный. 2000 символов нужно чтобы захватить полное сообщение об ошибке от API.
 
-- **Crawl4AI venv:** `./pipeline/crawl4ai/.venv/Scripts/python.exe` (Windows) или `./pipeline/crawl4ai/.venv/bin/python` (Linux/Mac). Относительно корня проекта. **НИКОГДА не искать python глобально — всегда использовать этот venv.**
-- **Запуск OpenAlex:** `./pipeline/crawl4ai/.venv/Scripts/python.exe pipeline/openalex/factcheck_openalex.py --targets pipeline/targets.json --prefix oa --timeout 15`
-- **Запуск Crawl4AI:** `./pipeline/crawl4ai/.venv/Scripts/python.exe pipeline/crawl4ai/factcheck_crawl4ai.py --targets pipeline/targets.json --prefix <prefix> --timeout 45`
-- **Запуск Scrapling:** `./pipeline/crawl4ai/.venv/Scripts/python.exe pipeline/scrapling/factcheck_scrapling.py --targets pipeline/targets.json --prefix sc --timeout 90`
+- **Корневой venv:** `.venv/Scripts/python.exe` (Windows) или `.venv/bin/python` (Linux/Mac). Относительно корня проекта. **НИКОГДА не искать python глобально — всегда использовать корневой .venv.**
+- **Запуск OpenAlex:** `.venv/Scripts/python.exe pipeline/openalex/factcheck_openalex.py --targets pipeline/targets.json --prefix oa --timeout 15`
+- **Запуск Crawl4AI:** `.venv/Scripts/python.exe pipeline/crawl4ai/factcheck_crawl4ai.py --targets pipeline/targets.json --prefix <prefix> --timeout 45`
+- **Запуск Scrapling:** `.venv/Scripts/python.exe pipeline/scrapling/factcheck_scrapling.py --targets pipeline/targets.json --prefix sc --timeout 90`
 - **Выходные файлы OpenAlex:** сохраняются в `pipeline/openalex/<prefix>_<id>.txt` (формат совместим с Crawl4AI).
 - **Выходные файлы Crawl4AI:** сохраняются в `pipeline/crawl4ai/<prefix>_<id>.txt` (скрипт пишет в свою папку).
 - **Выходные файлы Scrapling:** сохраняются в `pipeline/scrapling/<prefix>_<id>.txt` (формат совместим с Crawl4AI).
@@ -50,7 +50,7 @@
 - **Очистка временных файлов Crawl4AI после сеанса:** удалить `pipeline/crawl4ai/{prefix}_*.txt` (по умолчанию `crawl_*.txt`; также `fc_*.txt`, `fc2_*.txt` — исторические префиксы) и `targets_retry.json` если создавался. Сами результаты уже в `results.md`.
 - **Очистка временных файлов Scrapling после сеанса:** удалить `pipeline/scrapling/sc_*.txt`.
 - **Очистка временных файлов OpenAlex после сеанса:** удалить `pipeline/openalex/oa_*.txt`.
-- **python-docx:** устанавливается через `pip install python-docx`. Использует стандартный Python (или venv Crawl4AI, если python-docx установлен там).
+- **python-docx:** устанавливается через `pip install python-docx`. Использует стандартный Python (или корневой .venv, если python-docx установлен там).
 
 ### 0.2 OpenAlex API (Ур.0.5 каскада — программная валидация DOI)
 
@@ -70,9 +70,9 @@ API (проверено на OpenAlex REST API, CC0):
 - 404 = статья не найдена (NOT_FOUND).
 
 Технические константы:
-- **venv:** тот же, что у Crawl4AI (`./pipeline/crawl4ai/.venv/Scripts/python.exe` на Windows)
+- **venv:** корневой (`.venv/Scripts/python.exe` на Windows)
 - **Скрипт-раннер:** `pipeline/openalex/factcheck_openalex.py`
-- **Запуск:** `./pipeline/crawl4ai/.venv/Scripts/python.exe pipeline/openalex/factcheck_openalex.py --targets pipeline/targets.json --prefix oa --timeout 15`
+- **Запуск:** `.venv/Scripts/python.exe pipeline/openalex/factcheck_openalex.py --targets pipeline/targets.json --prefix oa --timeout 15`
 - **Аргументы:** `--targets`, `--prefix` (default: `oa`), `--timeout` (сек, default: 15), `--mailto` (email для Polite Pool)
 - **Выходные файлы:** `pipeline/openalex/{prefix}_{id}.txt` (формат совместим с Crawl4AI)
 - **Таймаут:** 15 сек на запрос (API, быстро)
@@ -102,9 +102,9 @@ API (проверено на scrapling v0.4.11):
 - `extract_text()` в скрипте — безопасный fallback: `get_all_text → html_content → body.decode`.
 
 Технические константы:
-- **venv:** тот же, что у Crawl4AI (`./pipeline/crawl4ai/.venv/Scripts/python.exe` на Windows)
+- **venv:** корневой (`.venv/Scripts/python.exe` на Windows)
 - **Скрипт-раннер:** `pipeline/scrapling/factcheck_scrapling.py`
-- **Запуск:** `./pipeline/crawl4ai/.venv/Scripts/python.exe pipeline/scrapling/factcheck_scrapling.py --targets pipeline/targets.json --prefix sc --timeout 90`
+- **Запуск:** `.venv/Scripts/python.exe pipeline/scrapling/factcheck_scrapling.py --targets pipeline/targets.json --prefix sc --timeout 90`
 - **Аргументы:** `--targets`, `--prefix` (default: `sc`), `--timeout` (сек, default: 90), `--adaptive`, `--css-selector`, `--no-cloudflare`
 - **Выходные файлы:** `pipeline/scrapling/{prefix}_{id}.txt` (формат совместим с Crawl4AI)
 - **Таймаут:** 90 сек на URL (браузер медленнее HTTP). Конвертится в ms внутри скрипта.
@@ -166,7 +166,7 @@ API (проверено на scrapling v0.4.11):
 
 **Для веб-фактчекинга:**
 - Каскад 7 уровней: OpenAlex → researcher-web → Crawl4AI → Scrapling → FireCrawl → Человек → Gemini DeepSearch.
-- Crawl4AI venv = `./pipeline/crawl4ai/.venv/Scripts/python.exe` (Windows) или `.../bin/python` (Linux/Mac).
+- Корневой .venv = `.venv/Scripts/python.exe` (Windows) или `.venv/bin/python` (Linux/Mac).
 - **OpenAlex (Ур.0.5):** `pipeline/openalex/factcheck_openalex.py` — всегда первым для DOI.
 - **Crawl4AI (Ур.2):** `pipeline/crawl4ai/factcheck_crawl4ai.py` — базовый парсинг. Если EMPTY → Scrapling.
 - **Scrapling (Ур.3, бесплатно):** `pipeline/scrapling/factcheck_scrapling.py` — обход Cloudflare.
