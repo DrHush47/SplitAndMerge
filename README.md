@@ -50,7 +50,6 @@ firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
 | [`docs/architecture.md`](pipeline/docs/architecture.md) | Архитектура конвейера — 5 ролей, 10 этапов, 7 принципов |
 | [`docs/knowledge.md`](pipeline/docs/knowledge.md) | Каскад веб-фактчекинга — 7 уровней, техконстанты, команды запуска |
 | [`docs/docx-protocol.md`](pipeline/docs/docx-protocol.md) | Протокол правки .docx через python-docx — правила, шаблоны, антипаттерны |
-| [`docs/results.md`](pipeline/docs/results.md) | Шаблон отчёта факт-чекера |
 | [`hush-prompt`](.agents/skills/hush-prompt/SKILL.md) | Prompt engineering — правила и шаблоны для LLM-промптов (заменил удалённый `docs/llm.md`) |
 
 
@@ -74,11 +73,10 @@ firecrawl scrape 'https://...' -o pipeline/firecrawl/.firecrawl/<name>.md
     ├── targets.json                  ← Цели для проверки (заполняется
     │                                    перед запуском)
 
-    ├── docs/                         ← Документация (4 файла)
+    ├── docs/                         ← Документация (3 файла)
     │   ├── architecture.md           ← Архитектура конвейера
     │   ├── knowledge.md              ← Каскад фактчекинга
-    │   ├── docx-protocol.md          ← Протокол правки .docx
-    │   └── results.md                ← Шаблон отчёта
+    │   └── docx-protocol.md          ← Протокол правки .docx
 
     ├── openalex/                     ← Ур.0.5 — валидация DOI
     │   ├── factcheck_openalex.py     ← Скрипт: OpenAlex REST API

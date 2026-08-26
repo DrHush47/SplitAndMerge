@@ -4,7 +4,6 @@
 > **Принцип:** доставить 90% результата за 30 минут лучше, чем 100% за 3 часа.
 >
 > **Правка .docx:** см. отдельный протокол — [`docx-protocol.md`](docx-protocol.md).
-> **Шаблон отчёта:** [`results.md`](results.md).
 
 ---
 
@@ -172,7 +171,6 @@ API (проверено на scrapling v0.4.11):
 - **Crawl4AI (Ур.2):** `pipeline/crawl4ai/factcheck_crawl4ai.py` — базовый парсинг. Если EMPTY → Scrapling.
 - **Scrapling (Ур.3, бесплатно):** `pipeline/scrapling/factcheck_scrapling.py` — обход Cloudflare.
 - **FireCrawl (Ур.4, резерв):** `firecrawl credit-usage` **обязательно** если использовался → цифры в results.md.
-- **Шаблон отчёта:** [`results.md`](results.md).
 
 **Главное:** надёжность через простоту. Один Python-скрипт, исполненный за 0.01 сек, лучше 8 CLI-команд за 20 секунд.
 
@@ -181,7 +179,6 @@ API (проверено на scrapling v0.4.11):
 ## Связанные документы
 
 - [`docx-protocol.md`](docx-protocol.md) — полный протокол правки .docx через python-docx
-- [`results.md`](results.md) — шаблон отчёта факт-чекера
 - [`architecture.md`](architecture.md) — архитектура конвейера редактуры
 - [`../openalex/openalex.md`](../openalex/openalex.md) — standalone-референс OpenAlex
 - [`../scrapling/scrapling.md`](../scrapling/scrapling.md) — standalone-референс Scrapling
