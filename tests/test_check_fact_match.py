@@ -186,6 +186,30 @@ CASES = [
         True,
         ["author 'Topol' found in fact"],
     ),
+    # --- регрессия: двоеточие в title нормализуется ---
+    (
+        "Doe J. High performance medicine",
+        "High performance medicine:",
+        ("Jane Doe",),
+        True,
+        ["title overlap 100%"],
+    ),
+    # --- регрессия: пунктуационный мусор title не ломает overlap ---
+    (
+        "Doe J. Alpha beta gamma",
+        "!!! alpha, beta; gamma...",
+        ("Jane Doe",),
+        True,
+        ["title overlap 100%"],
+    ),
+    # --- регрессия: пустые токены после strip игнорируются ---
+    (
+        "Doe J. Alpha beta gamma",
+        "... alpha ... beta ... gamma ...",
+        ("Jane Doe",),
+        True,
+        ["title overlap 100%"],
+    ),
 ]
 
 

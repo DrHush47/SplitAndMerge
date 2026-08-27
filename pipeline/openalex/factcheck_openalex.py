@@ -162,7 +162,8 @@ def check_fact_match(fact, data):
                   if len(w.strip(".,;:()[]«»\"'")) >= 4
                   and w.strip(".,;:()[]«»\"'").lower() not in stop_words}
 
-    title_words = set(title.split())
+    title_words = {w.strip(".,;:()[]«»\"'") for w in title.split()}
+    title_words = {w for w in title_words if w}
     matches = fact_words & title_words
     if len(fact_words) >= 3:
         overlap = len(matches) / len(fact_words)

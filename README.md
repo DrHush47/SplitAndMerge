@@ -1,5 +1,7 @@
 # Split & Merge — конвейер редактуры + каскад фактчекинга
 
+[![CI](https://github.com/DrHush47/SplitAndMerge/actions/workflows/ci.yml/badge.svg)](https://github.com/DrHush47/SplitAndMerge/actions/workflows/ci.yml)
+
 Гибридный конвейер для редактуры научных текстов по ГОСТ/журнальным стандартам
 и автоматической верификации источников. Главная идея — не доверять LLM
 без программной проверки.

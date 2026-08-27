@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "splitandmerge"
-version = "0.1.0"
+version = "0.2.0"
 description = "Конвейер редактуры научных текстов и каскадный веб-фактчекинг (OpenAlex → Crawl4AI → Scrapling → FireCrawl → человек → Gemini DeepSearch)."
 readme = "README.md"
 requires-python = ">=3.10"

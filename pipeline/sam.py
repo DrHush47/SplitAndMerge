@@ -97,10 +97,17 @@ def _phase2(candidates, timeout, out_dir):
     async def _run():
         try:
             from pipeline.crawl4ai.factcheck_crawl4ai import AsyncWebCrawler, crawl_one
-            async with AsyncWebCrawler() as crawler:
+            crawler = AsyncWebCrawler()
+            try:
+                await crawler.start()
                 for t in candidates:
                     text, success, error, links_str = await crawl_one(crawler, t, timeout)
                     out[t["id"]] = {"text": text, "success": success, "error": error, "links": links_str}
+            finally:
+                try:
+                    await crawler.close()
+                except Exception:  # noqa: BLE001 — best-effort cleanup
+                    pass
         except Exception as exc:  # noqa: BLE001 — сбой фазы ≠ падение sam.py
             _fail_all(exc)
 
