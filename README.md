@@ -35,9 +35,16 @@ python -m venv .venv
 .venv/Scripts/python.exe pipeline/crawl4ai/factcheck_crawl4ai.py --targets pipeline/targets.json --prefix crawl --timeout 45
 .venv/Scripts/python.exe pipeline/scrapling/factcheck_scrapling.py --targets pipeline/targets.json --prefix sc --timeout 90
 firecrawl scrape 'https://...' -o workspace/firecrawl_<name>.md
+
+# 5. (или) Авторежим — весь каскад одной командой (вместо ручного п.4):
+.venv/Scripts/python.exe pipeline/sam.py --targets pipeline/targets.json
+# .venv/bin/python pipeline/sam.py --targets pipeline/targets.json            # Linux/Mac
+# Результат: workspace/sam_verdicts.json (вердикты по каждой цели) + workspace/sam_report.md
 ```
 > Для Linux/Mac заменить `Scripts` на `bin`, а `python` на `python3` в путях к Python.
 (При необходимости укажите `--out-dir`, чтобы записать результаты в другой каталог.)
+
+Коды выхода `sam.py`: `0` — нет REFUTED; `1` — есть REFUTED (гейт остановился); `2` — ошибка конфигурации (targets не найден / пустой список). Уровни 1/4/5/6 программно недоступны (handoff), FireCrawl (Ур.4) автоматически не вызывается.
 
 ## Документация
 
