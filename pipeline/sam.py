@@ -86,7 +86,6 @@ def _phase2(candidates, timeout, out_dir):
     Любой сбой инфраструктуры (браузер не установлен, краш) деградирует все
     цели фазы в FAILED — sam.py не должен падать, вердикт по матрице станет UNCERTAIN.
     """
-    from factcheck_crawl4ai import AsyncWebCrawler, crawl_one
     out = {}
 
     def _fail_all(exc):
@@ -96,6 +95,7 @@ def _phase2(candidates, timeout, out_dir):
 
     async def _run():
         try:
+            from factcheck_crawl4ai import AsyncWebCrawler, crawl_one
             async with AsyncWebCrawler() as crawler:
                 for t in candidates:
                     text, success, error, links_str = await crawl_one(crawler, t, timeout)
@@ -115,8 +115,8 @@ def _phase3(sc_targets, timeout, out_dir):
 
     Сбой сессии (браузер недоступен) → все цели фазы деградируют в FAILED.
     """
-    from factcheck_scrapling import crawl_batch
     try:
+        from factcheck_scrapling import crawl_batch
         return crawl_batch(sc_targets, "sc", timeout, False, None, True, str(out_dir))
     except Exception as exc:  # noqa: BLE001
         return {t["id"]: {"fact": t["fact"], "url": t["url"], "text": "",
@@ -277,7 +277,8 @@ def write_report(records, out_dir, args, exec_levels, handoff_levels):
         L.append("")
     L.append("## Легенда")
     L.append("")
-    L.append("- **Вердикты** (`CONFIRMED` / `REFUTED` / `UNCERTAIN` / `BLOCKED`) — итог по факту, словарь Роли 5: [`pipeline/docs/cascade.md`](pipeline/docs/cascade.md).")
+    cascade_rel = os.path.relpath(str(_REPO_ROOT / "pipeline" / "docs" / "cascade.md"), str(out_dir)).replace("\\", "/")
+    L.append(f"- **Вердикты** (`CONFIRMED` / `REFUTED` / `UNCERTAIN` / `BLOCKED`) — итог по факту, словарь Роли 5: [`{cascade_rel}`]({cascade_rel}).")
     L.append("- **Evidence-states** (`RETRIEVED_OK` / `BLOCKED` / `FAILED` / `SKIPPED`) — только статусы извлечения внутри `level_results` (`sam_verdicts.json`). Успешное извлечение текста (`SUCCESS: True`) НЕ превращается в `CONFIRMED` — подтверждение даёт только программная проверка OpenAlex или человек/агент. НИКОГДА не выдумывать подтверждения.")
     L.append("- Низкоуровневые статусы скриптов (`CONFIRMED`/`MISMATCH`/`ERROR`/`SKIP` на Ур.0.5) — не финальные вердикты.")
     if any(r.verdict is Verdict.BLOCKED for r in records):
