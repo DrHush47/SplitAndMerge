@@ -27,20 +27,21 @@ import os
 import sys
 from pathlib import Path
 
-# Общие модули конвейера: sam.py лежит в pipeline/, фактчекеры — в подпапках
-_PIPELINE = Path(__file__).resolve().parent
-for _sub in (_PIPELINE, _PIPELINE / "openalex", _PIPELINE / "crawl4ai", _PIPELINE / "scrapling"):
-    if str(_sub) not in sys.path:
-        sys.path.insert(0, str(_sub))
+# Бутстрап: при запуске как скрипта (python pipeline/sam.py) sys.path[0] — каталог
+# скрипта (pipeline/), и пакетный импорт pipeline.* не резолвится. Добавляем КОРЕНЬ
+# репозитория в sys.path, чтобы работали обе формы запуска: скрипт (__package__ пуст)
+# и установленный entry-point `sam` → pipeline.sam:main (__package__ = "pipeline").
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if not __package__:
+    if str(_REPO_ROOT) not in sys.path:
+        sys.path.insert(0, str(_REPO_ROOT))
 
-from common import read_targets, fix_windows_console, default_out_dir
-from factcheck_openalex import batch_lookup, extract_doi, _DEFAULT_MAILTO
-from verdicts import (
+from pipeline.common import read_targets, fix_windows_console, default_out_dir
+from pipeline.openalex.factcheck_openalex import batch_lookup, extract_doi, _DEFAULT_MAILTO
+from pipeline.verdicts import (
     Verdict, VerdictRecord, verdict_from_openalex, classify_retrieval,
     write_json, RETRIEVED_OK, BLOCKED, FAILED,
 )
-
-_REPO_ROOT = Path(__file__).resolve().parents[1]
 
 # Формат шапки crawl-файла — как в factcheck_crawl4ai.main_async
 TRUNCATE_KEEP_CHARS = 1_500
@@ -95,7 +96,7 @@ def _phase2(candidates, timeout, out_dir):
 
     async def _run():
         try:
-            from factcheck_crawl4ai import AsyncWebCrawler, crawl_one
+            from pipeline.crawl4ai.factcheck_crawl4ai import AsyncWebCrawler, crawl_one
             async with AsyncWebCrawler() as crawler:
                 for t in candidates:
                     text, success, error, links_str = await crawl_one(crawler, t, timeout)
@@ -116,7 +117,7 @@ def _phase3(sc_targets, timeout, out_dir):
     Сбой сессии (браузер недоступен) → все цели фазы деградируют в FAILED.
     """
     try:
-        from factcheck_scrapling import crawl_batch
+        from pipeline.scrapling.factcheck_scrapling import crawl_batch
         return crawl_batch(sc_targets, "sc", timeout, False, None, True, str(out_dir))
     except Exception as exc:  # noqa: BLE001
         return {t["id"]: {"fact": t["fact"], "url": t["url"], "text": "",

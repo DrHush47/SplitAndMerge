@@ -9,7 +9,7 @@ import pathlib
 
 import pytest
 
-from verdicts import (
+from pipeline.verdicts import (
     Verdict, VerdictRecord, verdict_from_openalex, classify_retrieval,
     detect_blocked, write_json,
     RETRIEVED_OK, BLOCKED, FAILED, SKIPPED,

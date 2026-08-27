@@ -13,7 +13,7 @@
 
 import pytest
 
-from factcheck_openalex import check_fact_match, get_first_author_surname
+from pipeline.openalex.factcheck_openalex import check_fact_match, get_first_author_surname
 
 
 def oa_data(title="", authors=()):
