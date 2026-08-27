@@ -86,6 +86,9 @@ firecrawl scrape 'https://...' -o workspace/firecrawl_<name>.md
     │   ├── docx-protocol.md          ← Протокол правки .docx
     │   └── llm.md                    ← Prompt engineering (полное руководство)
 
+    ├── prompts/                      ← Шаблоны ролей (5 заготовок-промптов)
+    ├── templates/                    ← Журнал этапов (progress.template.md)
+
     ├── openalex/                     ← Ур.0.5 — валидация DOI
     │   ├── factcheck_openalex.py     ← Скрипт: OpenAlex REST API
     │   └── openalex.md               ← Референс команд
