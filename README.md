@@ -48,6 +48,24 @@ firecrawl scrape 'https://...' -o workspace/firecrawl_<name>.md
 
 Обратите внимание: фаза 3 (Scrapling) обрабатывает только те цели, которые на фазе 2 (Crawl4AI) получили статус FAILED или BLOCKED — то есть эскалация идёт строго «вверх по водопаду». Поэтому запуск с `--levels "0.5,3"` (без уровня 2) фазу 3 фактически не выполнит: целям, не прошедшим через фазу 2, не из чего эскалироваться. Для работы фазы 3 всегда включайте уровень 2 в `--levels`.
 
+### Установка и команда `sam` (рекомендуемый способ)
+
+```bash
+# 1. Установить пакет в venv (базовая установка — лёгкая, без тяжёлых зависимостей)
+.venv/Scripts/python.exe -m pip install -e .
+# .venv/bin/python -m pip install -e .                                # Linux/Mac
+
+# 2. Полный набор (веб-краулеры + python-docx) — если нужен весь каскад:
+# .venv/Scripts/python.exe -m pip install -e ".[web,docx]"
+
+# 3. Запуск авто-каскада одной командой:
+sam --targets pipeline/targets.json --out-dir workspace --levels 0.5,2,3
+```
+
+Команда `sam` устанавливается в venv и доступна из любого каталога. Запуск через
+`python pipeline/sam.py` (см. «Быстрый старт», п. 5) — равноправная альтернатива
+без установки пакета.
+
 ## Документация
 
 | Файл | Назначение |
@@ -64,10 +82,12 @@ firecrawl scrape 'https://...' -o workspace/firecrawl_<name>.md
 
 ```
 ├── README.md                         ← Этот файл
+├── pyproject.toml                    ← Пакет проекта: установка и команда `sam`
 ├── skills-lock.json                  ← Лок внешних навыков (hush-* — локально)
 ├── .gitignore / .editorconfig        ← Конфиги git и редактора
 ├── .venv/                            ← Виртуальное окружение (вне git)
 ├── workspace/                        ← Рантайм-артефакты (вне git)
+├── tests/                            ← pytest-набор тестового ядра (вне установки)
 │
 ├── .agents/                          ← Навыки и MCP-конфиг
 │   ├── mcp.json.example              ← Шаблон MCP-серверов    │   └── skills/                       ← 3 навыка (docx, hush-docx,

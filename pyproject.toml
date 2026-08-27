@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "splitandmerge"
+version = "0.1.0"
+description = "Конвейер редактуры научных текстов и каскадный веб-фактчекинг (OpenAlex → Crawl4AI → Scrapling → FireCrawl → человек → Gemini DeepSearch)."
+readme = "README.md"
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+web = ["crawl4ai>=0.5.0", "scrapling[all]>=0.4.11"]
+docx = ["python-docx>=1.0.0"]
+
+[project.scripts]
+sam = "pipeline.sam:main"
+
+[tool.setuptools.packages.find]
+include = ["pipeline*"]
+exclude = ["tests*", ".agents*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
