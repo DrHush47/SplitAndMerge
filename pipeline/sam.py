@@ -344,9 +344,8 @@ def main():
         print("FATAL: список целей пуст", file=sys.stderr)
         sys.exit(2)
     out_dir = Path(args.out_dir) if args.out_dir else default_out_dir()
-    out_dir.mkdir(parents=True, exist_ok=True)
 
-    # --- dry-run: только план, ничего не выполнять ---
+    # --- dry-run: только план, ничего не выполнять (каталог вывода НЕ создаётся) ---
     if args.dry_run:
         doi_count = sum(1 for t in targets if extract_doi(t))
         print("=== DRY-RUN: план авто-каскада (sam.py) ===", flush=True)
@@ -367,6 +366,7 @@ def main():
         sys.exit(0)
 
     # --- боевой прогон ---
+    out_dir.mkdir(parents=True, exist_ok=True)
     print(f"Loaded {len(targets)} targets from {args.targets}", flush=True)
     records = run_cascade(targets, exec_levels, args, out_dir)
 
