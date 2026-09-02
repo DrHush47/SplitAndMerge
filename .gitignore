@@ -27,3 +27,4 @@ workspace/
 
 # Sync script — only local, never sync to GitHub
 sync.sh
+agents.md
