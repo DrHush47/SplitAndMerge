@@ -18,7 +18,7 @@
 
 > **Почему MAX_TEXT_CHARS/TRUNCATE_KEEP_CHARS различаются:**
 > - Crawl4AI и Scrapling: `MAX_TEXT_CHARS = 200_000`, `TRUNCATE_KEEP_CHARS = 1_500` — парсят полные HTML-страницы (могут быть очень большими), 1500 символов достаточно для Cloudflare-заглушек и error-страниц.
-> - OpenAlex: `MAX_TEXT_CHARS = 50_000`, `TRUNCATE_KEEP_CHARS = 2_000` — ответы API это структурированный JSON, всегда компактный. 2000 символов нужно чтобы захватить полное сообщение об ошибке от API.
+> - OpenAlex: констант нет — ответы API это структурированный JSON, всегда компактный, сохраняются целиком без урезания.
 
 - **Корневой venv:** `.venv/Scripts/python.exe` (Windows) или `.venv/bin/python` (Linux/Mac). Относительно корня проекта. **НИКОГДА не искать python глобально — всегда использовать корневой .venv.**
 - **Запуск OpenAlex:** `.venv/Scripts/python.exe pipeline/openalex/factcheck_openalex.py --targets pipeline/targets.json --prefix oa --timeout 15`

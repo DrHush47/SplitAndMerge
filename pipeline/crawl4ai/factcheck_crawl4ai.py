@@ -77,7 +77,7 @@ async def crawl_one(crawler, target, timeout, js_code=None, session_id=None, use
     else:
         try:
             links_raw = list(links_raw)[:50]
-        except (TypeError, KeyError):
+        except TypeError:
             links_raw = []
         for link in links_raw:
             if isinstance(link, str):

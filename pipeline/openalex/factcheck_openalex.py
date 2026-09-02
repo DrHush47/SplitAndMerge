@@ -23,8 +23,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from common import read_targets, validate_prefix, fix_windows_console, default_out_dir, STOP_WORDS
 
-MAX_TEXT_CHARS = 50_000
-TRUNCATE_KEEP_CHARS = 2_000
 DOI_URL_RE = re.compile(r"doi\.org/(10\.[^/?#]+/[^/?#]+)")
 DOI_EXPECT_RE = re.compile(r"(?:DOI|doi)\s*(10\.[^\s,;)\]]+)", re.IGNORECASE)
 OPENALEX_URL = "https://api.openalex.org/works/https://doi.org/{}"

@@ -81,7 +81,7 @@ def _write_crawl_artifact(fname, t, text, success, error, links_str):
 # Фазы каскада
 # ---------------------------------------------------------------------------
 
-def _phase2(candidates, timeout, out_dir):
+def _phase2(candidates, timeout):
     """Фаза 2: Crawl4AI (Ур.2). Возвращает dict id -> {text, success, error, links}.
 
     Любой сбой инфраструктуры (браузер не установлен, краш) деградирует все
@@ -180,7 +180,7 @@ def run_cascade(targets, exec_levels, args, out_dir):
     if "2" in exec_levels and pending:
         print(f"\n=== Фаза 2: Crawl4AI (Ур.2) — {len(pending)} целей ===", flush=True)
         candidates = [t for t in targets if t["id"] in pending]
-        p2 = _phase2(candidates, args.timeout_crawl, out_dir)
+        p2 = _phase2(candidates, args.timeout_crawl)
         for t in candidates:
             tid = t["id"]
             rec = pending[tid]

@@ -22,6 +22,8 @@ factcheck_scrapling.py (v1)
 """
 
 import argparse
+import glob
+import os
 import sys
 import time
 from pathlib import Path
@@ -104,10 +106,7 @@ def _save_result(target, text, success, error, extractor, prefix, status_code, o
             f.write(f"ERROR: {error}\n")
         f.write("\n" + "=" * 70 + "\n")
         if text:
-            if error:
-                f.write(text[:TRUNCATE_KEEP_CHARS] if text else "")
-            else:
-                f.write(text)
+            f.write(text[:TRUNCATE_KEEP_CHARS] if error else text)
     return fname
 
 
@@ -119,9 +118,6 @@ def _resolve_browser_path(cli_value=None):
     machine while the Puppeteer-cached Chrome exists and works).
     Returns None to let Scrapling/Playwright use its own default.
     """
-    import os
-    from pathlib import Path
-
     candidate = cli_value or os.environ.get("SCRAPLING_EXECUTABLE_PATH")
     if candidate:
         p = Path(candidate)
@@ -130,7 +126,6 @@ def _resolve_browser_path(cli_value=None):
         print(f"    warn: browser path not found ({candidate}) — falling back to autodetect", flush=True)
 
     # Autodetect: newest Puppeteer-cached chrome.exe (Windows Git Bash paths)
-    import glob
     patterns = [
         os.path.expanduser("~/.cache/puppeteer/chrome/win64-*/chrome-win64/chrome.exe"),
         os.path.expanduser("~/.cache/puppeteer/chrome/mac_*/chrome-mac-*/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"),
