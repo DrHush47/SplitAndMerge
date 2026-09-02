@@ -21,7 +21,7 @@ from pathlib import Path
 
 # Import shared utilities from scripts/common.py
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from common import read_targets, validate_prefix, fix_windows_console, default_out_dir
+from common import read_targets, validate_prefix, fix_windows_console, default_out_dir, STOP_WORDS
 
 MAX_TEXT_CHARS = 50_000
 TRUNCATE_KEEP_CHARS = 2_000
@@ -151,13 +151,7 @@ def check_fact_match(fact, data):
             break
 
     # Стоп-слова + короткие слова (<4 букв) исключаем
-    stop_words = {
-        "the", "a", "an", "of", "in", "on", "to", "for", "and", "or",
-        "is", "are", "was", "were", "with", "from", "by", "at", "as",
-        "its", "it", "not", "no", "be", "has", "have", "had", "this",
-        "that", "which", "their", "been", "can", "may", "will", "would",
-        "et", "al", "de", "la", "le", "du", "des",
-    }
+    stop_words = STOP_WORDS  # общий словарь из pipeline/common.py
     fact_words = {w.strip(".,;:()[]«»\"'") for w in fact_title_part.split()
                   if len(w.strip(".,;:()[]«»\"'")) >= 4
                   and w.strip(".,;:()[]«»\"'").lower() not in stop_words}

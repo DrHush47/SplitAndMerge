@@ -50,6 +50,21 @@ firecrawl scrape 'https://...' -o workspace/firecrawl_<name>.md
 
 Обратите внимание: фаза 3 (Scrapling) обрабатывает только те цели, которые на фазе 2 (Crawl4AI) получили статус FAILED или BLOCKED — то есть эскалация идёт строго «вверх по водопаду». Поэтому запуск с `--levels "0.5,3"` (без уровня 2) фазу 3 фактически не выполнит: целям, не прошедшим через фазу 2, не из чего эскалироваться. Для работы фазы 3 всегда включайте уровень 2 в `--levels`.
 
+### Быстрый режим фактчекинга (без зависимостей)
+
+Альтернатива долгому прогону по уровням: агентский веб-поиск собирает
+кандидатов-источников (Ур.1) → ты вручную проверяешь и скачиваешь их в
+`workspace/manual/` (конвенция имён `{id}_*.txt|md|html|pdf`) → stdlib-скрипт
+программно сверяет скачанное с целями (DOI, term-coverage, цитаты; скачанные
+заглушки честно помечаются `BLOCKED`) → вердикт выносишь ты (Ур.5).
+
+```bash
+.venv/Scripts/python.exe pipeline/manual/factcheck_manual.py --targets pipeline/targets.json
+```
+
+Артефакты: `workspace/man_{id}.txt`. Скрипт НЕ выносит вердиктов — только
+evidence-states; финальное слово за человеком. Референс: [`pipeline/manual/manual.md`](pipeline/manual/manual.md).
+
 ### Установка и команда `sam` (рекомендуемый способ)
 
 ```bash
@@ -77,6 +92,7 @@ sam --targets pipeline/targets.json --out-dir workspace --levels 0.5,2,3
 | [`docs/cascade.md`](pipeline/docs/cascade.md) | Единый источник схемы каскада — 7 уровней, правила эскалации, словарь вердиктов |
 | [`docs/docx-protocol.md`](pipeline/docs/docx-protocol.md) | Протокол правки .docx через python-docx — правила, шаблоны, антипаттерны |
 | [`docs/llm.md`](pipeline/docs/llm.md) | Полное руководство по prompt engineering — техники, шаблоны, безопасность (Anthropic, OpenAI, Google, Meta, OWASP) |
+| [`pipeline/manual/manual.md`](pipeline/manual/manual.md) | Быстрый режим фактчекинга без зависимостей — workflow, конвенция имён, референс сканера |
 | [`prompts/`](pipeline/prompts/) | Готовые шаблоны промптов для ролей конвейера — 5 заготовок (reviewer, textwriter, tech-executor, factchecker, co-orchestrator) |
 
 
@@ -123,6 +139,10 @@ sam --targets pipeline/targets.json --out-dir workspace --levels 0.5,2,3
     ├── scrapling/                    ← Ур.3 — обход Cloudflare
     │   ├── factcheck_scrapling.py    ← Скрипт: Scrapling StealthySession
     │   └── scrapling.md              ← Референс команд
+    │
+    ├── manual/                       ← Быстрый режим (Ур.1→Ур.5) — без зависимостей
+    │   ├── factcheck_manual.py       ← Сканер ручных источников (stdlib-only)
+    │   └── manual.md                 ← Референс режима
     │
     └── firecrawl/                    ← Ур.4 — платный резерв
         └── firecrawl.md              ← Референс команд

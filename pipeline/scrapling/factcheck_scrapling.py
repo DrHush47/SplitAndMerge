@@ -111,7 +111,43 @@ def _save_result(target, text, success, error, extractor, prefix, status_code, o
     return fname
 
 
-def crawl_batch(targets, prefix, timeout, adaptive, css_selector, solve_cf, out_dir):
+def _resolve_browser_path(cli_value=None):
+    """Resolve a Chromium executable path for StealthySession.
+
+    Priority: --browser-path CLI > SCRAPLING_EXECUTABLE_PATH env >
+    Puppeteer cache autodetect (ms-playwright cache is often empty on this
+    machine while the Puppeteer-cached Chrome exists and works).
+    Returns None to let Scrapling/Playwright use its own default.
+    """
+    import os
+    from pathlib import Path
+
+    candidate = cli_value or os.environ.get("SCRAPLING_EXECUTABLE_PATH")
+    if candidate:
+        p = Path(candidate)
+        if p.is_file():
+            return str(p)
+        print(f"    warn: browser path not found ({candidate}) — falling back to autodetect", flush=True)
+
+    # Autodetect: newest Puppeteer-cached chrome.exe (Windows Git Bash paths)
+    import glob
+    patterns = [
+        os.path.expanduser("~/.cache/puppeteer/chrome/win64-*/chrome-win64/chrome.exe"),
+        os.path.expanduser("~/.cache/puppeteer/chrome/mac_*/chrome-mac-*/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"),
+        os.path.expanduser("~/.cache/puppeteer/chrome/linux-*/chrome-linux64/chrome"),
+    ]
+    found = []
+    for pat in patterns:
+        found.extend(glob.glob(pat))
+    if found:
+        # newest version wins (glob sorts lexically; version dirs are zero-padded enough)
+        best = sorted(found)[-1]
+        print(f"    browser: autodetected Puppeteer-cached Chrome: {best}", flush=True)
+        return best
+    return None
+
+
+def crawl_batch(targets, prefix, timeout, adaptive, css_selector, solve_cf, out_dir, browser_path=None):
     """Batch-парсинг URL через StealthySession.
     
     StealthySession держит браузер открытым между запросами — 
@@ -119,7 +155,11 @@ def crawl_batch(targets, prefix, timeout, adaptive, css_selector, solve_cf, out_
     """
     results = {}
     
-    with StealthySession(headless=True, solve_cloudflare=solve_cf) as session:
+    exe_path = _resolve_browser_path(browser_path)
+    session_kwargs = dict(headless=True, solve_cloudflare=solve_cf)
+    if exe_path:
+        session_kwargs["executable_path"] = exe_path
+    with StealthySession(**session_kwargs) as session:
         for target in targets:
             url = target["url"]
             tid = target["id"]
@@ -207,6 +247,8 @@ def main():
                     help="Disable Cloudflare Turnstile solving (faster for simple sites)")
     ap.add_argument("--out-dir", default=None,
                     help="output directory (default: <repo>/workspace)")
+    ap.add_argument("--browser-path", default=None,
+                    help="Chromium executable path (default: SCRAPLING_EXECUTABLE_PATH env, then Puppeteer cache autodetect)")
     args = ap.parse_args()
     
     fix_windows_console()
@@ -227,6 +269,7 @@ def main():
         css_selector=args.css_selector,
         solve_cf=not args.no_cloudflare,
         out_dir=out_dir,
+        browser_path=args.browser_path,
     )
     
     # Summary

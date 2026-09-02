@@ -114,6 +114,19 @@ API (проверено на scrapling v0.4.11):
 
 ---
 
+### 0.6 Быстрый режим без зависимостей (Ур.1 → Ур.5, ручные источники)
+
+Дополнительный режим, НЕ замена каскада — схему уровней и словарь вердиктов не расширяет.
+
+- **Скрипт:** `pipeline/manual/factcheck_manual.py` — только stdlib (PDF — опционально pypdf)
+- **Полный референс:** [`../manual/manual.md`](../manual/manual.md)
+- **Запуск:** `.venv/Scripts/python.exe pipeline/manual/factcheck_manual.py --targets pipeline/targets.json`
+- **Sources-dir:** `workspace/manual/` — вручную скачанные файлы по конвенции `{id}_*.ext`
+- **Выходные файлы:** `workspace/man_{id}.txt` — evidence-отчёты (STATE/DOI/COVERAGE/QUOTE), НЕ вердикты
+- **Гейт:** сканер НЕ выносит CONFIRMED/REFUTED — финальный вердикт за человеком (Ур.5)
+
+---
+
 ## 1. Аудит инструментов (2026-07-16)
 
 > Проведён полный аудит: скачана официальная документация OpenAlex, Crawl4AI, Scrapling. Сравнено с нашими скриптами и .md-документацией. Результаты внедрены в код.
@@ -151,6 +164,7 @@ API (проверено на scrapling v0.4.11):
 - **Crawl4AI (Ур.2):** `pipeline/crawl4ai/factcheck_crawl4ai.py` — базовый парсинг. Если EMPTY → Scrapling.
 - **Scrapling (Ур.3, бесплатно):** `pipeline/scrapling/factcheck_scrapling.py` — обход Cloudflare.
 - **FireCrawl (Ур.4, резерв):** `firecrawl credit-usage` **обязательно** если использовался → цифры в results.md.
+- **Быстрый режим (Ур.1→Ур.5, без зависимостей):** `pipeline/manual/factcheck_manual.py` — агент собирает кандидатов, человек скачивает файлы, сканер сверяет (evidence), вердикт за человеком. Референс: [`../manual/manual.md`](../manual/manual.md).
 
 **Главное:** надёжность через простоту. Один Python-скрипт, исполненный за 0.01 сек, лучше 8 CLI-команд за 20 секунд.
 

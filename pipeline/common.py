@@ -101,3 +101,17 @@ def validate_prefix(prefix: str):
     if not PREFIX_PATTERN.match(prefix):
         print(f"FATAL: --prefix must match [A-Za-z0-9_.-]+, got: {prefix!r}", file=sys.stderr)
         sys.exit(2)
+
+
+# ---------------------------------------------------------------------------
+# Stop-words — общий словарь для term-анализа (check_fact_match в openalex,
+# significant_terms в manual scanner). Единый источник — импортировать отсюда.
+# ---------------------------------------------------------------------------
+
+STOP_WORDS = {
+    "the", "a", "an", "of", "in", "on", "to", "for", "and", "or",
+    "is", "are", "was", "were", "with", "from", "by", "at", "as",
+    "its", "it", "not", "no", "be", "has", "have", "had", "this",
+    "that", "which", "their", "been", "can", "may", "will", "would",
+    "et", "al", "de", "la", "le", "du", "des",
+}
