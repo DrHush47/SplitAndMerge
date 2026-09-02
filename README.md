@@ -54,16 +54,17 @@ firecrawl scrape 'https://...' -o workspace/firecrawl_<name>.md
 
 Альтернатива долгому прогону по уровням: агентский веб-поиск собирает
 кандидатов-источников (Ур.1) → оператор вручную проверяет и скачивает их в
-`workspace/manual/` (конвенция имён `{id}_*.txt|md|html|pdf`) → stdlib-скрипт
-программно сверяет скачанное с целями (DOI, term-coverage, цитаты; скачанные
-заглушки честно помечаются `BLOCKED`) → финальный вердикт выносит человек (Ур.5).
+`workspace/manual/` (конвенция имён `{id}_*.txt|md|html|pdf`) → **уведомляет
+агента, и агент (LLM) сам сверяет скачанное с целями чтением файлов**
+(DOI, авторы, ключевые утверждения по контексту) → финальный вердикт выносит
+человек (Ур.5).
 
-```bash
-.venv/Scripts/python.exe pipeline/manual/factcheck_manual.py --targets pipeline/targets.json
-```
-
-Артефакты: `workspace/man_{id}.txt`. Скрипт НЕ выносит вердиктов — только
-evidence-states; финальное слово за человеком. Референс: [`pipeline/manual/manual.md`](pipeline/manual/manual.md).
+Сканер `pipeline/manual/factcheck_manual.py` (stdlib-only) — опциональная
+техподдержка, не обязательный шаг: его сверка DOI побайтовым сравнением первого
+совпадения регулярки даёт ложные `MISMATCH` на md-дампах статей (известный
+дефект, см. `pipeline/manual/manual.md`). Агент и сканер НЕ выносят вердиктов —
+только evidence; финальное слово за человеком. Референс:
+[`pipeline/manual/manual.md`](pipeline/manual/manual.md).
 
 ### Установка и команда `sam` (рекомендуемый способ)
 

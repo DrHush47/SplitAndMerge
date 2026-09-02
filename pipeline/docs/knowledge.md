@@ -118,12 +118,16 @@ API (проверено на scrapling v0.4.11):
 
 Дополнительный режим, НЕ замена каскада — схему уровней и словарь вердиктов не расширяет.
 
-- **Скрипт:** `pipeline/manual/factcheck_manual.py` — только stdlib (PDF — опционально pypdf)
+- **Основная сверка — агент (LLM):** после скачивания источников в sources-dir
+  оператор УВЕДОМЛЯЕТ агента, и агент сам читает файлы и сверяет их с целями
+  (DOI, авторы, ключевые утверждения по контексту). НЕ запускать сканер вместо этого.
 - **Полный референс:** [`../manual/manual.md`](../manual/manual.md)
-- **Запуск:** `.venv/Scripts/python.exe pipeline/manual/factcheck_manual.py --targets pipeline/targets.json`
 - **Sources-dir:** `workspace/manual/` — вручную скачанные файлы по конвенции `{id}_*.ext`
-- **Выходные файлы:** `workspace/man_{id}.txt` — evidence-отчёты (STATE/DOI/COVERAGE/QUOTE), НЕ вердикты
-- **Гейт:** сканер НЕ выносит CONFIRMED/REFUTED — финальный вердикт за человеком (Ур.5)
+- **Сканер (опциональная техподдержка):** `pipeline/manual/factcheck_manual.py`,
+  только stdlib. Запуск: `.venv/Scripts/python.exe pipeline/manual/factcheck_manual.py --targets pipeline/targets.json`.
+  Полю `DOI` в отчётах НЕ доверять: побайтовое сравнение первого совпадения
+  регулярки даёт ложные MISMATCH на md-дампах (известный дефект, manual.md).
+- **Гейт:** агент и сканер НЕ выносят CONFIRMED/REFUTED — финальный вердикт за человеком (Ур.5)
 
 ---
 
@@ -164,7 +168,7 @@ API (проверено на scrapling v0.4.11):
 - **Crawl4AI (Ур.2):** `pipeline/crawl4ai/factcheck_crawl4ai.py` — базовый парсинг. Если EMPTY → Scrapling.
 - **Scrapling (Ур.3, бесплатно):** `pipeline/scrapling/factcheck_scrapling.py` — обход Cloudflare.
 - **FireCrawl (Ур.4, резерв):** `firecrawl credit-usage` **обязательно** если использовался → цифры в results.md.
-- **Быстрый режим (Ур.1→Ур.5, без зависимостей):** `pipeline/manual/factcheck_manual.py` — агент собирает кандидатов, человек скачивает файлы, сканер сверяет (evidence), вердикт за человеком. Референс: [`../manual/manual.md`](../manual/manual.md).
+- **Быстрый режим (Ур.1→Ур.5, без зависимостей):** агент собирает кандидатов, человек скачивает файлы, затем уведомляет агента — и агент (LLM) сверяет файлы с целями чтением, без сканера (вербат: «источники в workspace/manual/, проверь по targets»). Вердикт за человеком. Референс: [`../manual/manual.md`](../manual/manual.md).
 
 **Главное:** надёжность через простоту. Один Python-скрипт, исполненный за 0.01 сек, лучше 8 CLI-команд за 20 секунд.
 
