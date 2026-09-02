@@ -222,7 +222,7 @@ def match_files(targets, sources_dir):
     """Разложить файлы sources_dir по целям по префиксу id.
 
     Конвенция: {id}[_\\-. ]*.{ext}. Длинные id проверяются первыми, чтобы
-    ref1 не съедал файлы цели ref10. Возвращает (mapping, orphans):
+    ref1 не перехватывает файлы цели ref10. Возвращает (mapping, orphans):
       mapping: dict id -> list[Path]; orphans: list[Path] без совпадения.
     """
     mapping = {t["id"]: [] for t in targets}
@@ -287,10 +287,10 @@ def _hint_for_target(records):
     if not records:
         return "файлы не найдены — конвенция {id}_*.ext, см. manual.md"
     if any(r.get("state") == BLOCKED for r in records):
-        return "в скачанном маркер блокировки — источник-заглушка, скачай иначе"
+        return "в скачанном маркер блокировки — источник-заглушка, используйте другой способ скачивания"
     if any(r.get("state") == RETRIEVED_OK for r in records):
         return "evidence собран — финальный вердикт за человеком (Ур.5, cascade.md)"
-    return "файлы есть, но evidence не извлечён — проверь форматы/содержимое"
+    return "файлы есть, но evidence не извлечён — проверьте форматы/содержимое"
 
 
 def run_scan(targets, sources_dir, prefix, out_dir, window):

@@ -90,7 +90,7 @@ def test_match_files_basic_and_orphans(tmp_path):
 
 
 def test_match_files_long_ids_first(tmp_path):
-    # ref1 не должен съесть ref10_*.txt
+    # ref1 не должен перехватывать ref10_*.txt
     _mk_files(tmp_path, ["ref1_x.txt", "ref10_y.txt"])
     targets = [{"id": "ref1"}, {"id": "ref10"}]
     mapping, orphans = match_files(targets, tmp_path)
