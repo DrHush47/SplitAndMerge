@@ -1,0 +1,30 @@
+# MCP project — sensitive files
+.env
+
+# MCP configs with API keys (do not commit)
+.agents/mcp.json
+
+# Python cache
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Package build artifacts (pip install -e .)
+*.egg-info/
+
+# Virtual environment
+.venv/
+
+# Runtime artifacts (factcheck outputs, session files)
+workspace/
+
+# IDE
+.vscode/
+.idea/
+
+# Freebuff session data — only local, never push to GitHub
+.freebuff/
+
+# Sync script — only local, never sync to GitHub
+sync.sh
+agents.md

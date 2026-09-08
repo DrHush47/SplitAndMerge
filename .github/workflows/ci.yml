@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package
+        run: pip install -e .
+      - name: Install test tools
+        run: pip install pytest ruff
+      - name: Ruff critical checks
+        run: ruff check pipeline tests --select E9,F63,F7,F82
+      - name: Run tests
+        run: python -m pytest -q
+      - name: Check CLI help
+        run: python pipeline/sam.py --help
+      - name: Check dry-run
+        run: python pipeline/sam.py --targets pipeline/targets.json --dry-run
