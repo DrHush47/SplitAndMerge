@@ -77,13 +77,13 @@ sam --targets pipeline/targets.json --out-dir workspace --levels 0.5,2,3
 | [`docs/knowledge.md`](pipeline/docs/knowledge.md) | Каскад веб-фактчекинга — техконстанты, команды запуска |
 | [`docs/cascade.md`](pipeline/docs/cascade.md) | Единый источник схемы каскада — 7 уровней, правила эскалации, словарь вердиктов |
 | [`docs/docx-protocol.md`](pipeline/docs/docx-protocol.md) | Протокол правки .docx через python-docx — правила, шаблоны, антипаттерны |
-| [`docs/llm.md`](pipeline/docs/llm.md) | Полное руководство по prompt engineering — техники, шаблоны, безопасность (Anthropic, OpenAI, Google, Meta, OWASP) |
+| [`docs/llm.md`](pipeline/docs/llm.md) | Полное руководство по prompt engineering — техники, шаблоны, безопасность (Anthropic, OpenAI, Google, Meta, OWASP). **Рекомендован рецензенту и (со-)оркестратору для удобного написания промптов** |
 | [`pipeline/manual/manual.md`](pipeline/manual/manual.md) | Быстрый режим фактчекинга без зависимостей — workflow, конвенция имён, референс сканера |
-| [`prompts/`](pipeline/prompts/) | Готовые шаблоны промптов для ролей конвейера — 5 заготовок (reviewer, textwriter, tech-executor, factchecker, co-orchestrator) |
+| [`prompts/`](pipeline/prompts/) | Готовые шаблоны промптов для ролей конвейера — 5 заготовок (reviewer, textwriter, tech-executor, factchecker, co-orchestrator). Для роли текстовика оптимален [Writing Editor (Gemini Gem)](https://gemini.google.com/gem/writing-editor) (см. [`prompts/textwriter.md`](pipeline/prompts/textwriter.md) § Первоисточники) |
 
 ### Карта чтения
 
-Порядок чтения: `pipeline/docs/architecture.md` → `pipeline/docs/cascade.md` → `pipeline/docs/knowledge.md` §0.1 → нужный раздел (`pipeline/docs/docx-protocol.md` для правки .docx; `pipeline/manual/manual.md` для быстрого режима; `pipeline/prompts/` для текста роли; референс уровня `openalex/scrapling/firecrawl` только перед его запуском).
+Порядок чтения: `pipeline/docs/architecture.md` → `pipeline/docs/cascade.md` → `pipeline/docs/knowledge.md` §0.1 → нужный раздел (`pipeline/docs/docx-protocol.md` для правки .docx; `pipeline/manual/manual.md` для быстрого режима; `pipeline/prompts/` для текста роли; референс уровня `openalex/scrapling/firecrawl` только перед его запуском; **`pipeline/docs/llm.md` — рецензенту и (со-)оркестратору перед написанием промптов**; для роли текстовика оптимален [Writing Editor (Gemini Gem)](https://gemini.google.com/gem/writing-editor) — см. [`pipeline/prompts/textwriter.md`](pipeline/prompts/textwriter.md) § Первоисточники).
 
 Каноны (не дублируются в других файлах): схема и вердикты — `cascade.md`; команды и пути — `knowledge.md` §0.1; код шаблона .docx — `pipeline/templates/docx_orchestrator.py`.
 

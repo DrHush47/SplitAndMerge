@@ -50,4 +50,5 @@
 ## Первоисточники
 
 - [`../docs/architecture.md`](../docs/architecture.md) — Роль 3, Этапы 4 и 5
-- [Writing Editor (Gemini Gem)](https://gemini.google.com/gem/writing-editor) — оптимальная модель на роль «текстовик»
+- **Рекомендация (текстовик):** [Writing Editor (Gemini Gem)](https://gemini.google.com/gem/writing-editor) — оптимальная модель на роль «текстовик»
+- **Рекомендация (рецензент и оркестратор):** [`../docs/llm.md`](../docs/llm.md) — удобный документ для написания промптов

@@ -44,3 +44,4 @@
 
 - [`../docs/architecture.md`](../docs/architecture.md) — Роль 2, Этапы 1, 5, 8, 10
 - [`../docs/docx-protocol.md`](../docs/docx-protocol.md) — протокол правки `.docx` через python-docx
+- **Рекомендация:** [`../docs/llm.md`](../docs/llm.md) — удобный документ для написания промптов рецензентом
