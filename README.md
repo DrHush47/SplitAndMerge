@@ -94,7 +94,6 @@ sam --targets pipeline/targets.json --out-dir workspace --levels 0.5,2,3
 ├── README.md                         ← Этот файл
 ├── pyproject.toml                    ← Пакет проекта: установка и команда `sam`
 ├── skills-lock.json                  ← Лок внешних навыков (hush-*, deep-research, litreview, deepread, research — локально)
-├── скиллы/                          ← Входящий буфер кандидатов (15 шт.; установлены 4, см. docs/research-skills.md)
 ├── .gitignore / .editorconfig        ← Конфиги git и редактора
 ├── .venv/                            ← Виртуальное окружение (вне git)
 ├── workspace/                        ← Рантайм-артефакты (вне git)
