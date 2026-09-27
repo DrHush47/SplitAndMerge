@@ -40,6 +40,17 @@
     необходимости.
 - **Самоотчёт не считается:** финальный отчёт — только после программной проверки
   (перечитай результат через `python-docx` и сверь каждый пункт чек-листа).
+- Комплекс из 3 инструментов (карта выбора — в [`../docs/docx-protocol.md`](../docs/docx-protocol.md) §3):
+  - форматирование и вставки — `hush-docx` (правила R1–R4 выше);
+  - точечные правки — `docx-cli` (бинарь `docx` на PATH; локаторы `pN`/`tN:rRcC`
+    из `docx read`; пачки — через `--batch`; сначала `--dry-run`):
+    redline человеку — `track-changes on` → правки → `list`;
+    комментарии — `comments add --anchor "фраза" --text "..."`;
+    сверка прогонов — `docx diff новый.docx --against снапшот.docx`
+    (снапшот делать ДО мутаций);
+  - живые нумерации/подписи/рестайлинг — `docx-master`
+    (`overview` → конфиг → `apply --dry-run` → `apply` → `validate.js`;
+    оригинал не трогается).
 
 ---
 
@@ -68,4 +79,6 @@
 
 - [`../docs/architecture.md`](../docs/architecture.md) — Роль 4, Этапы 2, 6, 7, 9
 - `.agents/skills/hush-docx/SKILL.md` — правила R1–R12 и хелперы
-- [`../docs/docx-protocol.md`](../docs/docx-protocol.md) — протокол правки `.docx`
+- `.agents/skills/docx-cli/SKILL.md` — локаторы, redline, комментарии, diff
+- `.agents/skills/docx-master/SKILL.md` — нумерации, подписи, рестайлинг, аудит
+- [`../docs/docx-protocol.md`](../docs/docx-protocol.md) — протокол правки `.docx` (комплекс §3, установка §3.1)

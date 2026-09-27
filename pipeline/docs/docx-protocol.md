@@ -168,19 +168,47 @@ print(f"Параграфов: {len(doc2.paragraphs)}, Таблиц: {len(doc2.ta
 
 ---
 
-## 3. Выбор инструмента по типу операции
+## 3. Выбор инструмента по типу операции (комплекс из 3 инструментов)
+
+> Разделение труда: `hush-docx` — форматирование и вставки; `docx-cli` — точечные
+> правки, redline, комментарии, diff; `docx-master` — живые нумерации, подписи,
+> рестайлинг, аудит. Каноны навыков — в `.agents/skills/<имя>/SKILL.md`, здесь
+> только карта выбора. Установка бинаря `docx` — см. §3.1.
 
 | Операция | Инструмент | Почему |
 |---|---|---|
-| Глобальное форматирование (шрифт, поля, интервал) | `python-docx` | Итерация по `doc.paragraphs` + `doc.sections`. Для таблиц: `table.rows` → `row.cells` → `cell.paragraphs` |
-| Вставка заголовка перед абзацем | `python-docx` | `p._element.addprevious(new_p._element)` — просто и быстро |
-| Удаление подзаголовка из начала абзаца | `python-docx` | `p.text = p.text.replace("Подзаголовок. ", "")` — но см. §5.1 про cross-run |
-| Замена текста в ячейке таблицы | `python-docx` | `table.rows[N].cells[M].paragraphs[0]` — прямой доступ. См. §5.1 для cross-run |
-| Перенумерация списка (27 источников) | `python-docx` | Цикл `for i, p in enumerate(bib_paras): p.runs[0].text = f"{i+1}. " + ...` |
-| Длинные вставки (TEXT-N фрагменты) | `python-docx` | `doc.add_paragraph(TEXT_N)` — без shell-escape |
-| Создание нового документа с нуля | `python-docx` | Циклы, шаблоны |
-| Cross-run --find (текст разбит по runs) | OfficeCLI (резерв) | Встроенный `--find` работает через границы runs автоматически |
-| Трекаемые изменения, TOC, watermark | OfficeCLI (резерв) | Готовые операции (если установлен) |
+| Глобальное форматирование (шрифт, поля, интервал) | `hush-docx` | Итерация по `doc.paragraphs` + `doc.sections`. Для таблиц: `table.rows` → `row.cells` → `cell.paragraphs` |
+| Вставка заголовка перед абзацем | `hush-docx` | `insert_heading_before(check_duplicate=True)` — с duplicate-check (§1.6) |
+| Удаление подзаголовка из начала абзаца | `hush-docx` | Через хелперы; cross-run — см. §5.1 |
+| Замена текста в ячейке таблицы | `docx-cli` | `docx replace файл "X" "Y" --at tN:rRcC` — локаторы точнее индексов; cross-run ловит из коробки |
+| Текстовые замены по документу (incl. cross-run) | `docx-cli` | `docx find` → точный спан → `replace --all`; `--batch` — пачка правок за одно чтение/запись |
+| Правки с tracked changes (redline человеку) | `docx-cli` | `track-changes on` → правки → `list` → `accept/reject`; человек принимает в Word |
+| Комментарии рецензента в файле | `docx-cli` | `comments add --anchor "фраза" --text "..."` вместо отдельного промпта-3 |
+| Сверка 1-го и 2-го прогона | `docx-cli` | `docx diff новый.docx --against старый.docx` — механический diff вместо ручной сверки |
+| Перенумерация списка вбитым текстом | `hush-docx` | Цикл + regex `^\d+\.\s` (§1.8) — быстро для разовой задачи |
+| Перевод вбитой нумерации в живые поля | `docx-master` | `apply` ставит схемы нумерации; вставки больше не рассинхронизируют номера |
+| Подписи «Таблица N» / рисунки + ссылки на них | `docx-master` | SEQ + REF поля (`captions.md`); `migrate_captions` находит вбитые (EN/CJK из коробки, RU — через `pattern_rules`) |
+| Рестайлинг всего документа по ролям | `docx-master` | `pattern_rules`/`bulk_rules` + `apply --dry-run` → `apply`; оригинал не трогается |
+| Аудит структуры перед правками | `docx-master` | `overview` (стили, сиротные схемы нумерации, фингерпринты) + `inspect_blockers` |
+| Валидация результата | `docx-master` | `validate.js` — schema-aware OOXML-проверка (baseline-diff: фатальны только новые ошибки) |
+| Длинные вставки (TEXT-N фрагменты) | `hush-docx` | `doc.add_paragraph(TEXT_N)` — без shell-escape |
+| Создание нового документа с нуля | `hush-docx` | Циклы, шаблоны |
+| TOC, watermark (резерв) | OfficeCLI (резерв) | Только если установлен; TOC-поле вставить умеет и `docx-cli` (`edit toc`) |
+
+### 3.1 Установка новичков (один раз на машину, вне git)
+
+- **`docx-cli`:** бинарь `docx-windows-x64.exe` v0.26.0 из релизов
+  `kklimuk/docx-cli` → `C:/Users/cherk/AppData/Local/Programs/docx/docx.exe`
+  (вне репо, в git не попадает). SHA256 обязан совпасть:
+  `548864f9a827291e05a32a1f08a15825df34caee5c8ea7d56542b35bd99f8f85`
+  (проверка: `Get-FileHash ... -Algorithm SHA256`). Лицензия LGPL-3.0 — внешний
+  бинарь, код проекта не затрагивает. Скилл: `.agents/skills/docx-cli/SKILL.md`
+  (тонкий: контракт — `docx --help` + `docx info locators`).
+- **`docx-master`:** установка не нужна — `node scripts/*.js`, Node уже стоит.
+  Скилл: `.agents/skills/docx-master/SKILL.md`. Node warning
+  `MODULE_TYPELESS_PACKAGE_JSON` — косметика в stderr, игнорировать.
+- **Дисциплина обоих:** сначала `--dry-run` / предпросмотр, потом запись;
+  снапшот исходника до мутаций (`docx diff --against` — против снапшота).
 
 ---
 

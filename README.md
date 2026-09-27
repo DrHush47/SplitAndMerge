@@ -93,17 +93,18 @@ sam --targets pipeline/targets.json --out-dir workspace --levels 0.5,2,3
 ```
 ├── README.md                         ← Этот файл
 ├── pyproject.toml                    ← Пакет проекта: установка и команда `sam`
-├── skills-lock.json                  ← Лок внешних навыков (hush-*, deep-research, litreview, deepread, research, research-summarizer — локально)
+├── skills-lock.json                  ← Лок внешних навыков (hush-*, deep-research, litreview, deepread, research, research-summarizer, docx-cli, docx-master — локально)
 ├── .gitignore / .editorconfig        ← Конфиги git и редактора
 ├── .venv/                            ← Виртуальное окружение (вне git)
 ├── workspace/                        ← Рантайм-артефакты (содержимое вне git; чистка — только с подтверждения)
 ├── tests/                            ← pytest-набор тестового ядра (вне установки)
 │
 ├── .agents/                          ← Навыки и MCP-конфиг
-│   ├── mcp.json.example              ← Шаблон MCP-серверов    │   └── skills/                       ← 8 навыков (docx, hush-docx,
+│   ├── mcp.json.example              ← Шаблон MCP-серверов    │   └── skills/                       ← 10 навыков (docx, hush-docx,
 │                                       find-skills + deep-research,
 │                                       litreview, deepread, research,
-│                                       research-summarizer)
+│                                       research-summarizer, docx-cli,
+│                                       docx-master)
 │
 └── pipeline/                         ← Основной код конвейера
     ├── __init__.py                   ← Пакет
