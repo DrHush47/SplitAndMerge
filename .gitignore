@@ -18,6 +18,9 @@ __pycache__/
 # Runtime artifacts (factcheck outputs, session files)
 workspace/
 
+# Local test raw material (docx сырье для тестов) — only local, never push to GitHub
+работа/
+
 # IDE
 .vscode/
 .idea/
