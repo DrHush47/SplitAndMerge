@@ -24,6 +24,8 @@
      фальсификация данных;
    - **Серьёзные** — оформление: шрифты, поля, интервалы, нумерация;
    - **Прочие** — стилистические, мелкие отступления.
+   Для доказательного разбора — навык `deepread` (argument tree + evidence ledger;
+   канон — в [`../docs/research-skills.md`](../docs/research-skills.md)).
 2. Выполни ПРОГРАММНУЮ вычитку через `python-docx`:
    - поля страницы (конвертация EMU → мм);
    - шрифты и кегли по всем абзацам и ячейкам таблиц;
@@ -44,4 +46,5 @@
 
 - [`../docs/architecture.md`](../docs/architecture.md) — Роль 2, Этапы 1, 5, 8, 10
 - [`../docs/docx-protocol.md`](../docs/docx-protocol.md) — протокол правки `.docx` через python-docx
+- [`../docs/research-skills.md`](../docs/research-skills.md) — навык `deepread` для Этапов 1 и 5
 - **Рекомендация:** [`../docs/llm.md`](../docs/llm.md) — удобный документ для написания промптов рецензентом

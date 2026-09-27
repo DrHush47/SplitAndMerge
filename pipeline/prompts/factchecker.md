@@ -36,6 +36,9 @@
 - Сверяй факты и `[TEXT-N]` из `{{МАТЕРИАЛ}}` по чек-листу `{{ЧЕК-ЛИСТ}}` (авторы, заголовки,
   годы, DOI, написание брендов латиницей, официальные названия журналов).
 - Возвращай вердикт по каждому факту с прямой цитатой и URL источника.
+- Методология (не уровни каскада): для академического поиска — навык `litreview`
+  (PubMed + OpenAlex); для дорогих вопросов — дисциплина `deep-research`
+  (триангуляция ≥3 источников + adversarial-pass). Канон — в [`../docs/research-skills.md`](../docs/research-skills.md).
 
 ---
 
@@ -44,3 +47,4 @@
 - [`../docs/cascade.md`](../docs/cascade.md) — словарь вердиктов и правила эскалации (единый источник)
 - [`../docs/architecture.md`](../docs/architecture.md) — Роль 5, Этапы 3 и 4.5, раздел 6
 - [`../docs/knowledge.md`](../docs/knowledge.md) — техконстанты и команды запуска
+- [`../docs/research-skills.md`](../docs/research-skills.md) — методология навыков `deep-research` / `litreview` / `research`

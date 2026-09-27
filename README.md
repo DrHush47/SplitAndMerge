@@ -77,30 +77,33 @@ sam --targets pipeline/targets.json --out-dir workspace --levels 0.5,2,3
 | [`docs/knowledge.md`](pipeline/docs/knowledge.md) | Каскад веб-фактчекинга — техконстанты, команды запуска |
 | [`docs/cascade.md`](pipeline/docs/cascade.md) | Единый источник схемы каскада — 7 уровней, правила эскалации, словарь вердиктов |
 | [`docs/docx-protocol.md`](pipeline/docs/docx-protocol.md) | Протокол правки .docx через python-docx — правила, шаблоны, антипаттерны |
+| [`docs/research-skills.md`](pipeline/docs/research-skills.md) | Канон 4 исследовательских навыков (deep-research, litreview, deepread, research) — карта по ролям/этапам, границы, команды скриптов |
 | [`docs/llm.md`](pipeline/docs/llm.md) | Полное руководство по prompt engineering — техники, шаблоны, безопасность (Anthropic, OpenAI, Google, Meta, OWASP). **Рекомендован рецензенту и (со-)оркестратору для удобного написания промптов** |
 | [`pipeline/manual/manual.md`](pipeline/manual/manual.md) | Быстрый режим фактчекинга без зависимостей — workflow, конвенция имён, референс сканера |
 | [`prompts/`](pipeline/prompts/) | Готовые шаблоны промптов для ролей конвейера — 5 заготовок (reviewer, textwriter, tech-executor, factchecker, co-orchestrator). Для роли текстовика оптимален [Writing Editor (Gemini Gem)](https://gemini.google.com/gem/writing-editor) (см. [`prompts/textwriter.md`](pipeline/prompts/textwriter.md) § Первоисточники) |
 
 ### Карта чтения
 
-Порядок чтения: `pipeline/docs/architecture.md` → `pipeline/docs/cascade.md` → `pipeline/docs/knowledge.md` §0.1 → нужный раздел (`pipeline/docs/docx-protocol.md` для правки .docx; `pipeline/manual/manual.md` для быстрого режима; `pipeline/prompts/` для текста роли; референс уровня `openalex/scrapling/firecrawl` только перед его запуском; **`pipeline/docs/llm.md` — рецензенту и (со-)оркестратору перед написанием промптов**; для роли текстовика оптимален [Writing Editor (Gemini Gem)](https://gemini.google.com/gem/writing-editor) — см. [`pipeline/prompts/textwriter.md`](pipeline/prompts/textwriter.md) § Первоисточники).
+Порядок чтения: `pipeline/docs/architecture.md` → `pipeline/docs/cascade.md` → `pipeline/docs/knowledge.md` §0.1 → нужный раздел (`pipeline/docs/docx-protocol.md` для правки .docx; `pipeline/docs/research-skills.md` для исследовательских навыков факт-чекера/рецензента/со-оркестратора; `pipeline/manual/manual.md` для быстрого режима; `pipeline/prompts/` для текста роли; референс уровня `openalex/scrapling/firecrawl` только перед его запуском; **`pipeline/docs/llm.md` — рецензенту и (со-)оркестратору перед написанием промптов**; для роли текстовика оптимален [Writing Editor (Gemini Gem)](https://gemini.google.com/gem/writing-editor) — см. [`pipeline/prompts/textwriter.md`](pipeline/prompts/textwriter.md) § Первоисточники).
 
-Каноны (не дублируются в других файлах): схема и вердикты — `cascade.md`; команды и пути — `knowledge.md` §0.1; код шаблона .docx — `pipeline/templates/docx_orchestrator.py`.
+Каноны (не дублируются в других файлах): схема и вердикты — `cascade.md`; команды и пути — `knowledge.md` §0.1; исследовательские навыки — `research-skills.md`; код шаблона .docx — `pipeline/templates/docx_orchestrator.py`.
 
 ## Структура проекта
 
 ```
 ├── README.md                         ← Этот файл
 ├── pyproject.toml                    ← Пакет проекта: установка и команда `sam`
-├── skills-lock.json                  ← Лок внешних навыков (hush-* — локально)
+├── skills-lock.json                  ← Лок внешних навыков (hush-*, deep-research, litreview, deepread, research — локально)
+├── скиллы/                          ← Входящий буфер кандидатов (15 шт.; установлены 4, см. docs/research-skills.md)
 ├── .gitignore / .editorconfig        ← Конфиги git и редактора
 ├── .venv/                            ← Виртуальное окружение (вне git)
 ├── workspace/                        ← Рантайм-артефакты (вне git)
 ├── tests/                            ← pytest-набор тестового ядра (вне установки)
 │
 ├── .agents/                          ← Навыки и MCP-конфиг
-│   ├── mcp.json.example              ← Шаблон MCP-серверов    │   └── skills/                       ← 3 навыка (docx, hush-docx,
-    │                                       find-skills)
+│   ├── mcp.json.example              ← Шаблон MCP-серверов    │   └── skills/                       ← 7 навыков (docx, hush-docx,
+│                                       find-skills + deep-research,
+│                                       litreview, deepread, research)
 │
 └── pipeline/                         ← Основной код конвейера
     ├── __init__.py                   ← Пакет
@@ -110,11 +113,12 @@ sam --targets pipeline/targets.json --out-dir workspace --levels 0.5,2,3
     ├── targets.json                  ← Цели для проверки (заполняется
     │                                    перед запуском)
 
-    ├── docs/                         ← Документация (5 файлов)
+    ├── docs/                         ← Документация (6 файлов)
     │   ├── architecture.md           ← Архитектура конвейера
     │   ├── knowledge.md              ← Каскад фактчекинга
     │   ├── cascade.md                ← Единый источник схемы каскада
     │   ├── docx-protocol.md          ← Протокол правки .docx
+    │   ├── research-skills.md        ← Канон исследовательских навыков
     │   └── llm.md                    ← Prompt engineering (полное руководство)
 
     ├── prompts/                      ← Шаблоны ролей (5 заготовок-промптов)
