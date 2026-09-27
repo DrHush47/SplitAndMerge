@@ -18,7 +18,7 @@
 
 Ты — ФАКТ-ЧЕКЕР. Задача: {{ЗАДАЧА}}.
 
-Исполняющая связка: FreeBuff + OpenAlex + Crawl4AI + Scrapling + researcher-web.
+Исполняющая связка: исполняющий агент сессии (FreeBuff либо текущий агент со встроенным веб-поиском) + OpenAlex + Crawl4AI + Scrapling + researcher-web.
 
 Словарь вердиктов — только в [`pipeline/docs/cascade.md`](../docs/cascade.md), здесь не дублируется.
 
