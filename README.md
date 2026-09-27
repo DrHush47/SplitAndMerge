@@ -77,7 +77,7 @@ sam --targets pipeline/targets.json --out-dir workspace --levels 0.5,2,3
 | [`docs/knowledge.md`](pipeline/docs/knowledge.md) | Каскад веб-фактчекинга — техконстанты, команды запуска |
 | [`docs/cascade.md`](pipeline/docs/cascade.md) | Единый источник схемы каскада — 7 уровней, правила эскалации, словарь вердиктов |
 | [`docs/docx-protocol.md`](pipeline/docs/docx-protocol.md) | Протокол правки .docx через python-docx — правила, шаблоны, антипаттерны |
-| [`docs/research-skills.md`](pipeline/docs/research-skills.md) | Канон 4 исследовательских навыков (deep-research, litreview, deepread, research) — карта по ролям/этапам, границы, команды скриптов |
+| [`docs/research-skills.md`](pipeline/docs/research-skills.md) | Канон 5 исследовательских навыков (deep-research, litreview, deepread, research, research-summarizer) — карта по ролям/этапам, границы, команды скриптов |
 | [`docs/llm.md`](pipeline/docs/llm.md) | Полное руководство по prompt engineering — техники, шаблоны, безопасность (Anthropic, OpenAI, Google, Meta, OWASP). **Рекомендован рецензенту и (со-)оркестратору для удобного написания промптов** |
 | [`pipeline/manual/manual.md`](pipeline/manual/manual.md) | Быстрый режим фактчекинга без зависимостей — workflow, конвенция имён, референс сканера |
 | [`prompts/`](pipeline/prompts/) | Готовые шаблоны промптов для ролей конвейера — 5 заготовок (reviewer, textwriter, tech-executor, factchecker, co-orchestrator). Для роли текстовика оптимален [Writing Editor (Gemini Gem)](https://gemini.google.com/gem/writing-editor) (см. [`prompts/textwriter.md`](pipeline/prompts/textwriter.md) § Первоисточники) |
@@ -93,16 +93,17 @@ sam --targets pipeline/targets.json --out-dir workspace --levels 0.5,2,3
 ```
 ├── README.md                         ← Этот файл
 ├── pyproject.toml                    ← Пакет проекта: установка и команда `sam`
-├── skills-lock.json                  ← Лок внешних навыков (hush-*, deep-research, litreview, deepread, research — локально)
+├── skills-lock.json                  ← Лок внешних навыков (hush-*, deep-research, litreview, deepread, research, research-summarizer — локально)
 ├── .gitignore / .editorconfig        ← Конфиги git и редактора
 ├── .venv/                            ← Виртуальное окружение (вне git)
 ├── workspace/                        ← Рантайм-артефакты (вне git)
 ├── tests/                            ← pytest-набор тестового ядра (вне установки)
 │
 ├── .agents/                          ← Навыки и MCP-конфиг
-│   ├── mcp.json.example              ← Шаблон MCP-серверов    │   └── skills/                       ← 7 навыков (docx, hush-docx,
+│   ├── mcp.json.example              ← Шаблон MCP-серверов    │   └── skills/                       ← 8 навыков (docx, hush-docx,
 │                                       find-skills + deep-research,
-│                                       litreview, deepread, research)
+│                                       litreview, deepread, research,
+│                                       research-summarizer)
 │
 └── pipeline/                         ← Основной код конвейера
     ├── __init__.py                   ← Пакет
