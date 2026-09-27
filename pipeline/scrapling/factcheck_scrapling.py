@@ -19,12 +19,21 @@ factcheck_scrapling.py (v1)
     - StealthySession — синхронный (with, не async with).
     - timeout — в секундах, конвертится в миллисекунды (Playwright).
     - Без threading: StealthFetchParams.timeout работает нативно.
+    - ЖЁСТКИЙ ДЕДЛАЙН: внутренний цикл solve_cloudflare библиотеки таймауту
+      fetch НЕ подчиняется (зафиксировано зависание на managed-Turnstile на 5+ мин
+      при --timeout 90). Поэтому каждая цель — свой поток со своей сессией
+      и дедлайном timeout + DEADLINE_GRACE_S; по истечении — провал с эскалацией
+      (зависший поток/браузер доживает до конца процесса).
+    - Одна попытка на цель, без повторных заходов: Turnstile либо берётся за первые
+      2-3 цикла (~30-40 сек), либо не берётся никогда.
 """
 
 import argparse
+import concurrent.futures
 import glob
 import os
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -36,6 +45,10 @@ from scrapling.fetchers import StealthySession
 
 MAX_TEXT_CHARS = 200_000
 TRUNCATE_KEEP_CHARS = 1_500
+
+# Жёсткий wall-clock дедлайн на цель = timeout + эта надбавка (сек).
+# Покрывает внутренний цикл solve_cloudflare, которому fetch-timeout не указ.
+DEADLINE_GRACE_S = 30
 
 
 # =================== ИЗВЛЕЧЕНИЕ ТЕКСТА ===================
@@ -142,88 +155,156 @@ def _resolve_browser_path(cli_value=None):
     return None
 
 
-def crawl_batch(targets, prefix, timeout, adaptive, css_selector, solve_cf, out_dir, browser_path=None):
-    """Batch-парсинг URL через StealthySession.
-    
-    StealthySession держит браузер открытым между запросами — 
-    это в 10-20× быстрее, чем открывать/закрывать для каждого URL.
+def _run_isolated(fn, args, deadline):
+    """Запуск fn(*args) в daemon-потоке с дедлайном (сек).
+
+    Daemon важен: зависший fetch (Cloudflare-цикл) не должен держать выход
+    из процесса — pool.shutdown(wait=False) этого не гарантирует, т.к. потоки
+    ThreadPoolExecutor не daemon. Осиротевший браузер зависшей цели может
+    задержаться в процессах ОС — приемлемо для редкого пути.
+    Бросает concurrent.futures.TimeoutError по истечении дедлайна.
     """
-    results = {}
-    
-    exe_path = _resolve_browser_path(browser_path)
-    session_kwargs = dict(headless=True, solve_cloudflare=solve_cf)
+    fut = concurrent.futures.Future()
+
+    def _target():
+        if fut.cancelled():
+            return
+        try:
+            fut.set_result(fn(*args))
+        except Exception as exc:  # noqa: BLE001 — intentional: transport any worker error to the main thread
+            if not fut.done():
+                fut.set_exception(exc)
+
+    t = threading.Thread(target=_target, daemon=True)
+    t.start()
+    return fut.result(timeout=deadline)
+
+
+def _open_session(exe_path, solve_cf, real_chrome):
+    """Создать StealthySession (контекстом управляет вызывающий worker)."""
+    session_kwargs = dict(headless=True, solve_cloudflare=solve_cf,
+                          real_chrome=real_chrome)
     if exe_path:
         session_kwargs["executable_path"] = exe_path
-    with StealthySession(**session_kwargs) as session:
-        for target in targets:
-            url = target["url"]
-            tid = target["id"]
-            print(f"[{tid}] {url}", flush=True)
-            print(f"    fact   : {target['fact']}", flush=True)
-            print(f"    expect : {target.get('expect', '')}", flush=True)
-            
-            start_ts = time.time()
-            try:
-                # timeout в Scrapling/Playwright — в миллисекундах
-                page = session.fetch(url, timeout=timeout * 1000, network_idle=True)
-                elapsed = time.time() - start_ts
-                
-                status_code = getattr(page, 'status', None)
-                print(f"    status : {status_code}  elapsed={elapsed:.1f}s", flush=True)
-                
-                # Adaptive CSS parsing или обычный
-                if css_selector:
-                    try:
-                        if adaptive:
-                            elements = page.css(css_selector, adaptive=True)
-                        else:
-                            elements = page.css(css_selector)
-                        text = '\n'.join(str(e) for e in elements) if elements else ''
-                        extractor = 'css+adaptive' if adaptive else 'css'
-                        success = bool(text.strip())
-                    except Exception as exc:  # noqa: BLE001 — intentional: catch any CSS parsing error and fall back to extract_text()
-                        print(f"    css err: {exc}", flush=True)
-                        text, extractor = extract_text(page)
-                        success = bool(text.strip())
-                else:
-                    text, extractor = extract_text(page)
-                    success = bool(text.strip())
-                
-                error = None
-                if not success:
-                    error = "EMPTY"
-                
-                print(f"    extract: {extractor}  len={len(text)}  success={success}", flush=True)
-                
-            except Exception as exc:  # noqa: BLE001 — intentional: catch any fetch error (timeout, connection, etc.) and report
-                elapsed = time.time() - start_ts
-                exc_name = type(exc).__name__
-                if 'Timeout' in exc_name or 'timeout' in str(exc).lower():
-                    error = f"timeout after {elapsed:.0f}s (limit={timeout}s): {exc}"
-                    extractor = "timeout"
-                    print(f"    status : TIMEOUT — {error}", flush=True)
-                else:
-                    error = f"{exc_name}: {exc}"
-                    extractor = "error"
-                    print(f"    status : ERROR — {error}", flush=True)
-                text = ""
-                success = False
-                status_code = None
-            
-            # Сохраняем результат
-            fname = _save_result(target, text, success, error, extractor, prefix, status_code, out_dir)
-            print(f"    saved  : {fname}", flush=True)
-            
-            results[tid] = {
-                "fact": target["fact"],
-                "url": url,
-                "text": text,
-                "success": success,
-                "error": error,
-                "extractor": extractor,
-                "status": status_code,
-            }
-    
+    return StealthySession(**session_kwargs)
+
+
+def _worker_fetch(exe_path, solve_cf, real_chrome,
+                  url, timeout, adaptive, css_selector):
+    """Fetch + extract целиком в одном потоке: сессия создаётся и используется
+    здесь же (Playwright sync API привязан к потоку создания — кросс-поток
+    запрещён). Одна попытка, без повторных заходов.
+
+    Возвращает (text, extractor, success, error, status_code).
+    """
+    start_ts = time.time()
+    with _open_session(exe_path, solve_cf, real_chrome) as session:
+        # timeout в Scrapling/Playwright — в миллисекундах
+        page = session.fetch(url, timeout=timeout * 1000, network_idle=True)
+    elapsed = time.time() - start_ts
+
+    status_code = getattr(page, 'status', None)
+    print(f"    status : {status_code}  elapsed={elapsed:.1f}s", flush=True)
+
+    # Adaptive CSS parsing или обычный
+    if css_selector:
+        try:
+            if adaptive:
+                elements = page.css(css_selector, adaptive=True)
+            else:
+                elements = page.css(css_selector)
+            text = '\n'.join(str(e) for e in elements) if elements else ''
+            extractor = 'css+adaptive' if adaptive else 'css'
+            success = bool(text.strip())
+        except Exception as exc:  # noqa: BLE001 — intentional: catch any CSS parsing error and fall back to extract_text()
+            print(f"    css err: {exc}", flush=True)
+            text, extractor = extract_text(page)
+            success = bool(text.strip())
+    else:
+        text, extractor = extract_text(page)
+        success = bool(text.strip())
+
+    error = None
+    if not success:
+        error = "EMPTY"
+
+    print(f"    extract: {extractor}  len={len(text)}  success={success}", flush=True)
+    return text, extractor, success, error, status_code
+
+
+def crawl_batch(targets, prefix, timeout, adaptive, css_selector, solve_cf, out_dir,
+                browser_path=None, real_chrome=False,
+                deadline_grace=DEADLINE_GRACE_S):
+    """Batch-парсинг URL через StealthySession.
+
+    Изоляция на цель: каждая цель — свой поток + своя сессия/браузер.
+    Цена — запуск браузера на цель (~10 сек), зато зависший Cloudflare-цикл
+    одной цели не вешает весь батч и не портит соседей.
+    (Совместная сессия на батч убрана осознанно: Playwright sync API
+    кросс-поток запрещает, а общий дедлайн важнее экономии 10-20×.)
+
+    Жёсткий дедлайн на цель: timeout + deadline_grace (wall-clock).
+    По истечении — провал с эскалацией (зависший поток/браузер доживает
+    до конца процесса, в общий пул не возвращается).
+    """
+    results = {}
+    deadline = timeout + deadline_grace
+
+    exe_path = _resolve_browser_path(browser_path)
+    for target in targets:
+        url = target["url"]
+        tid = target["id"]
+        print(f"[{tid}] {url}", flush=True)
+        print(f"    fact   : {target['fact']}", flush=True)
+        print(f"    expect : {target.get('expect', '')}", flush=True)
+
+        start_ts = time.time()
+        try:
+            text, extractor, success, error, status_code = _run_isolated(
+                _worker_fetch,
+                (exe_path, solve_cf, real_chrome, url, timeout,
+                 adaptive, css_selector),
+                deadline)
+            elapsed = time.time() - start_ts
+        except concurrent.futures.TimeoutError:
+            elapsed = time.time() - start_ts
+            error = (f"deadline {deadline:.0f}s exceeded "
+                     f"(fetch limit {timeout}s + grace {deadline_grace}s): "
+                     f"Cloudflare-цикл не сошёлся — эскалация на Ур.4/Ур.5")
+            extractor = "deadline"
+            print(f"    status : DEADLINE — {error}", flush=True)
+            text = ""
+            success = False
+            status_code = None
+        except Exception as exc:  # noqa: BLE001 — intentional: catch any fetch error (timeout, connection, etc.) and report
+            elapsed = time.time() - start_ts
+            exc_name = type(exc).__name__
+            if 'Timeout' in exc_name or 'timeout' in str(exc).lower():
+                error = f"timeout after {elapsed:.0f}s (limit={timeout}s): {exc}"
+                extractor = "timeout"
+                print(f"    status : TIMEOUT — {error}", flush=True)
+            else:
+                error = f"{exc_name}: {exc}"
+                extractor = "error"
+                print(f"    status : ERROR — {error}", flush=True)
+            text = ""
+            success = False
+            status_code = None
+
+        # Сохраняем результат
+        fname = _save_result(target, text, success, error, extractor, prefix, status_code, out_dir)
+        print(f"    saved  : {fname}", flush=True)
+        
+        results[tid] = {
+            "fact": target["fact"],
+            "url": url,
+            "text": text,
+            "success": success,
+            "error": error,
+            "extractor": extractor,
+            "status":                 status_code,
+        }
+
     return results
 
 
@@ -244,6 +325,9 @@ def main():
                     help="output directory (default: <repo>/workspace)")
     ap.add_argument("--browser-path", default=None,
                     help="Chromium executable path (default: SCRAPLING_EXECUTABLE_PATH env, then Puppeteer cache autodetect)")
+    ap.add_argument("--real-chrome", action="store_true",
+                    help="Use installed Google Chrome instead of headless Chromium "
+                         "(A/B: иногда проходит managed-Turnstile, который не берёт headless)")
     args = ap.parse_args()
     
     fix_windows_console()
@@ -254,6 +338,9 @@ def main():
     out_dir = Path(args.out_dir) if args.out_dir else default_out_dir()
     print(f"Settings: timeout={args.timeout}s, adaptive={args.adaptive}, "
           f"css_selector={args.css_selector}, solve_cloudflare={not args.no_cloudflare}, "
+          f"real_chrome={args.real_chrome}, "
+          f"deadline={args.timeout + DEADLINE_GRACE_S}s "
+          f"(timeout+{DEADLINE_GRACE_S}s grace), "
           f"out-dir={out_dir}", flush=True)
     
     results = crawl_batch(
@@ -265,6 +352,7 @@ def main():
         solve_cf=not args.no_cloudflare,
         out_dir=out_dir,
         browser_path=args.browser_path,
+        real_chrome=args.real_chrome,
     )
     
     # Summary
