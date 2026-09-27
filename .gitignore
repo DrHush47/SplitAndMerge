@@ -16,7 +16,9 @@ __pycache__/
 .venv/
 
 # Runtime artifacts (factcheck outputs, session files)
-workspace/
+# Папка workspace/ существует в git (через .gitkeep), содержимое — только локально
+workspace/*
+!workspace/.gitkeep
 
 # IDE
 .vscode/

@@ -96,7 +96,7 @@ sam --targets pipeline/targets.json --out-dir workspace --levels 0.5,2,3
 ├── skills-lock.json                  ← Лок внешних навыков (hush-*, deep-research, litreview, deepread, research, research-summarizer — локально)
 ├── .gitignore / .editorconfig        ← Конфиги git и редактора
 ├── .venv/                            ← Виртуальное окружение (вне git)
-├── workspace/                        ← Рантайм-артефакты (вне git)
+├── workspace/                        ← Рантайм-артефакты (содержимое вне git; чистка — только с подтверждения)
 ├── tests/                            ← pytest-набор тестового ядра (вне установки)
 │
 ├── .agents/                          ← Навыки и MCP-конфиг
