@@ -39,6 +39,9 @@
 7. Для маршрутизации исследовательских подзадач используй навык `research`
    (детерминированный роутер в `litreview`/`deepread`/fallback; решение озвучивай
    вслух; канон — в [`../docs/research-skills.md`](../docs/research-skills.md)).
+   Делегируй ТОЛЬКО в установленные специалисты (`litreview`, `deepread`);
+   вердикт классификатора в `pulse/grants/syllabus/patent/dossier` считай
+   недоступным маршрутом и иди в fallback (см. `research-skills.md` §1.1).
 
 ---
 
