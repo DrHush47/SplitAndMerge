@@ -58,8 +58,8 @@ firecrawl scrape 'https://...' -o workspace/firecrawl_<name>.md
 .venv/Scripts/python.exe -m pip install -e .
 # .venv/bin/python -m pip install -e .                                # Linux/Mac
 
-# 2. Полный набор (веб-краулеры + python-docx) — если нужен весь каскад:
-# .venv/Scripts/python.exe -m pip install -e ".[web,docx]"
+# 2. Полный набор (веб-краулеры + python-docx + презентации .pptx) — если нужен весь конвейер:
+# .venv/Scripts/python.exe -m pip install -e ".[web,docx,pptx]"
 
 # 3. Запуск авто-каскада одной командой:
 sam --targets pipeline/targets.json --out-dir workspace --levels 0.5,2,3
@@ -69,6 +69,20 @@ sam --targets pipeline/targets.json --out-dir workspace --levels 0.5,2,3
 `python pipeline/sam.py` (см. «Быстрый старт», п. 5) — равноправная альтернатива
 без установки пакета.
 
+### Обновление локального репозитория (для агентов и пользователей)
+
+При получении обновлений из ветки `main`:
+```bash
+git pull origin main
+
+# Обновить/доустановить зависимости (модуль презентаций .pptx: python-pptx, pillow):
+.venv/Scripts/python.exe -m pip install -r pipeline/requirements.txt      # Windows
+# .venv/bin/python -m pip install -r pipeline/requirements.txt            # Linux/Mac
+
+# Или обновить локальный editable-пакет со всеми расширениями:
+.venv/Scripts/python.exe -m pip install -e ".[web,docx,pptx]"
+```
+
 ## Документация
 
 | Файл | Назначение |
@@ -77,6 +91,7 @@ sam --targets pipeline/targets.json --out-dir workspace --levels 0.5,2,3
 | [`docs/knowledge.md`](pipeline/docs/knowledge.md) | Каскад веб-фактчекинга — техконстанты, команды запуска |
 | [`docs/cascade.md`](pipeline/docs/cascade.md) | Единый источник схемы каскада — 7 уровней, правила эскалации, словарь вердиктов |
 | [`docs/docx-protocol.md`](pipeline/docs/docx-protocol.md) | Протокол правки .docx через python-docx — правила, шаблоны, антипаттерны |
+| [`docs/presentation-protocol.md`](pipeline/docs/presentation-protocol.md) | Протокол сборки презентаций .pptx — триада доклада, fit_in_box, автоподбор Ultra-HD ассетов, экспорт 1080p |
 | [`docs/research-skills.md`](pipeline/docs/research-skills.md) | Канон 5 исследовательских навыков (deep-research, litreview, deepread, research, research-summarizer) — карта по ролям/этапам, границы, команды скриптов |
 | [`docs/llm.md`](pipeline/docs/llm.md) | Полное руководство по prompt engineering — техники, шаблоны, безопасность (Anthropic, OpenAI, Google, Meta, OWASP). **Рекомендован рецензенту и (со-)оркестратору для удобного написания промптов** |
 | [`pipeline/manual/manual.md`](pipeline/manual/manual.md) | Быстрый режим фактчекинга без зависимостей — workflow, конвенция имён, референс сканера |
@@ -84,9 +99,9 @@ sam --targets pipeline/targets.json --out-dir workspace --levels 0.5,2,3
 
 ### Карта чтения
 
-Порядок чтения: `pipeline/docs/architecture.md` → `pipeline/docs/cascade.md` → `pipeline/docs/knowledge.md` §0.1 → нужный раздел (`pipeline/docs/docx-protocol.md` для правки .docx; `pipeline/docs/research-skills.md` для исследовательских навыков факт-чекера/рецензента/со-оркестратора; `pipeline/manual/manual.md` для быстрого режима; `pipeline/prompts/` для текста роли; референс уровня `openalex/scrapling/firecrawl` только перед его запуском; **`pipeline/docs/llm.md` — рецензенту и (со-)оркестратору перед написанием промптов**; для роли текстовика оптимален [Writing Editor (Gemini Gem)](https://gemini.google.com/gem/writing-editor) — см. [`pipeline/prompts/textwriter.md`](pipeline/prompts/textwriter.md) § Первоисточники).
+Порядок чтения: `pipeline/docs/architecture.md` → `pipeline/docs/cascade.md` → `pipeline/docs/knowledge.md` §0.1 → нужный раздел (`pipeline/docs/docx-protocol.md` для правки .docx; `pipeline/docs/presentation-protocol.md` для сборки презентаций .pptx и материалов доклада; `pipeline/docs/research-skills.md` для исследовательских навыков факт-чекера/рецензента/со-оркестратора; `pipeline/manual/manual.md` для быстрого режима; `pipeline/prompts/` для текста роли; референс уровня `openalex/scrapling/firecrawl` только перед его запуском; **`pipeline/docs/llm.md` — рецензенту и (со-)оркестратору перед написанием промптов**; для роли текстовика оптимален [Writing Editor (Gemini Gem)](https://gemini.google.com/gem/writing-editor) — см. [`pipeline/prompts/textwriter.md`](pipeline/prompts/textwriter.md) § Первоисточники).
 
-Каноны (не дублируются в других файлах): схема и вердикты — `cascade.md`; команды и пути — `knowledge.md` §0.1; исследовательские навыки — `research-skills.md`; код шаблона .docx — `pipeline/templates/docx_orchestrator.py`.
+Каноны (не дублируются в других файлах): схема и вердикты — `cascade.md`; команды и пути — `knowledge.md` §0.1; презентации и триада доклада — `presentation-protocol.md`; исследовательские навыки — `research-skills.md`; код шаблона .docx — `pipeline/templates/docx_orchestrator.py`.
 
 ## Структура проекта
 
@@ -98,6 +113,7 @@ sam --targets pipeline/targets.json --out-dir workspace --levels 0.5,2,3
 ├── .venv/                            ← Виртуальное окружение (вне git)
 ├── workspace/                        ← Рантайм-артефакты (содержимое вне git; чистка — только с подтверждения)
 ├── tests/                            ← pytest-набор тестового ядра (вне установки)
+├── sandbox/                          ← Экспериментальная лаборатория (pptx-lab)
 │
 ├── .agents/                          ← Навыки и MCP-конфиг
 │   ├── mcp.json.example              ← Шаблон MCP-серверов    │   └── skills/                       ← 10 навыков (docx, hush-docx,
@@ -114,11 +130,12 @@ sam --targets pipeline/targets.json --out-dir workspace --levels 0.5,2,3
     ├── targets.json                  ← Цели для проверки (заполняется
     │                                    перед запуском)
 
-    ├── docs/                         ← Документация (6 файлов)
+    ├── docs/                         ← Документация (7 файлов)
     │   ├── architecture.md           ← Архитектура конвейера
     │   ├── knowledge.md              ← Каскад фактчекинга
     │   ├── cascade.md                ← Единый источник схемы каскада
     │   ├── docx-protocol.md          ← Протокол правки .docx
+    │   ├── presentation-protocol.md  ← Протокол сборки презентаций (.pptx)
     │   ├── research-skills.md        ← Канон исследовательских навыков
     │   └── llm.md                    ← Prompt engineering (полное руководство)
 

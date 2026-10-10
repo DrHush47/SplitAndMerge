@@ -29,3 +29,13 @@ workspace/
 # Sync script — only local, never sync to GitHub
 sync.sh
 agents.md
+
+# Node.js
+node_modules/
+
+# Isolated testbeds & feature sandboxes (экспериментальные полигоны и тесты новых фич)
+sandbox/*
+!sandbox/README.md
+!sandbox/pptx-lab/
+sandbox/pptx-lab/*
+!sandbox/pptx-lab/README.md
