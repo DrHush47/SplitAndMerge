@@ -16,8 +16,9 @@ __pycache__/
 .venv/
 
 # Runtime artifacts (factcheck outputs, session files)
-# Папка создаётся скриптами при записи; содержимое — только локально
-workspace/
+# Папка workspace/ существует в git (через .gitkeep), всё динамическое содержимое — только локально
+workspace/*
+!workspace/.gitkeep
 
 # IDE
 .vscode/
@@ -33,9 +34,5 @@ agents.md
 # Node.js
 node_modules/
 
-# Isolated testbeds & feature sandboxes (экспериментальные полигоны и тесты новых фич)
-sandbox/*
-!sandbox/README.md
-!sandbox/pptx-lab/
-sandbox/pptx-lab/*
-!sandbox/pptx-lab/README.md
+# Isolated testbeds & feature sandboxes (полностью локально, вне git)
+sandbox/
