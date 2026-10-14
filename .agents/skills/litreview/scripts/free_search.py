@@ -111,7 +111,7 @@ def search_openalex(query: str, max_results: int, mailto: str = None) -> list:
         results.append(
             {
                 "source": "openalex",
-                "title": work.get("display_name", "").strip(),
+                "title": (work.get("display_name") or "").strip(),
                 "authors": [a for a in authors if a],
                 "year": work.get("publication_year"),
                 "journal": venue,
