@@ -111,7 +111,7 @@ git pull origin main
 ├── skills-lock.json                  ← Лок внешних навыков (hush-*, deep-research, litreview, deepread, research, research-summarizer, docx-cli, docx-master — локально)
 ├── .gitignore / .editorconfig        ← Конфиги git и редактора
 ├── .venv/                            ← Виртуальное окружение (вне git)
-├── workspace/                        ← Каталог артефактов сессий (папка в git через .gitkeep, содержимое вне git)
+├── workspace/                        ← Каталог артефактов сессий (создаётся скриптами при запуске, вне git)
 ├── tests/                            ← pytest-набор тестового ядра (вне установки)
 ├── sandbox/                          ← Локальный полигон экспериментов (только локально, вне git)
 │
