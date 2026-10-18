@@ -22,22 +22,29 @@
 > - OpenAlex: констант нет — ответы API это структурированный JSON, всегда компактный, сохраняются целиком без урезания.
 
 - **Корневой venv:** `.venv/Scripts/python.exe` (Windows) или `.venv/bin/python` (Linux/Mac). Относительно корня проекта. **НИКОГДА не искать python глобально — всегда использовать корневой .venv.**
-- **Запуск OpenAlex:** `.venv/Scripts/python.exe pipeline/openalex/factcheck_openalex.py --targets pipeline/targets.json --prefix oa --timeout 15`
-- **Запуск Crawl4AI:** `.venv/Scripts/python.exe pipeline/crawl4ai/factcheck_crawl4ai.py --targets pipeline/targets.json --prefix <prefix> --timeout 45`
-- **Запуск Scrapling:** `.venv/Scripts/python.exe pipeline/scrapling/factcheck_scrapling.py --targets pipeline/targets.json --prefix sc --timeout 90`
-- **Выходные файлы (все уровни):** `workspace/{prefix}_{id}.txt` — OpenAlex (`oa_*`), Crawl4AI (`crawl_*`), Scrapling (`sc_*`); FireCrawl — `workspace/firecrawl_<name>.md` через `-o workspace/firecrawl_<name>.md`. Директория `workspace/` — в корне репо, вне git. **НЕ создавай других каталогов для артефактов.**
+- **Запуск OpenAlex (Ур.0.5):** `.venv/Scripts/python.exe pipeline/openalex/factcheck_openalex.py --targets pipeline/targets.json --prefix oa --timeout 15`
+- **Запуск BioMed Deep Check (Ур.0.7):** `.venv/Scripts/python.exe pipeline/biomed/factcheck_biomed.py --targets pipeline/targets.json --prefix bm --timeout 15`
+- **Запуск Crawl4AI (Ур.2):** `.venv/Scripts/python.exe pipeline/crawl4ai/factcheck_crawl4ai.py --targets pipeline/targets.json --prefix <prefix> --timeout 45`
+- **Запуск Scrapling (Ур.3):** `.venv/Scripts/python.exe pipeline/scrapling/factcheck_scrapling.py --targets pipeline/targets.json --prefix sc --timeout 90`
+- **Выходные файлы (все уровни):** `workspace/{prefix}_{id}.txt` — OpenAlex (`oa_*`), BioMed (`bm_*`), Crawl4AI (`crawl_*`), Scrapling (`sc_*`); FireCrawl — `workspace/firecrawl_<name>.md` через `-o workspace/firecrawl_<name>.md`. Директория `workspace/` — в корне репо, вне git. **НЕ создавай других каталогов для артефактов.**
 - **Проверка кредитов FireCrawl:** `firecrawl credit-usage`
 - **Полный референс команд OpenAlex:** см. [`openalex.md`](../openalex/openalex.md)
+- **Полный референс команд BioMed:** см. [`biomed.md`](../biomed/biomed.md), канонический протокол — [`biomed-protocol.md`](biomed-protocol.md)
 - **Полный референс команд Scrapling:** см. [`scrapling.md`](../scrapling/scrapling.md)
 - **Полный референс команд FireCrawl:** см. [`firecrawl.md`](../firecrawl/firecrawl.md)
 - **Папка `workspace/`:** Создаётся скриптами на лету (`parents=True, exist_ok=True`), отдельных холостых проверок не требует. Размещение материалов и процедурных скриптов сессии — по стандарту Session Workspace Containment ([`architecture.md`](architecture.md) § Принцип 8).
 - **Очистка `workspace/`:** Только по явному качественному подтверждению пользователя («чисти», «готово», «принято»). Без подтверждения содержимое сохраняется.
 - **python-docx:** устанавливается через `pip install python-docx`. Использует стандартный Python (или корневой .venv, если python-docx установлен там).
 - **Презентации (.pptx):** `python-pptx` и `pillow` устанавливаются через `pip install -r pipeline/requirements.txt` или `pip install -e ".[pptx]"`. Канонический протокол — [`presentation-protocol.md`](presentation-protocol.md).
+- **Биомедицинский модуль:** `polite-http` и `python-dotenv` устанавливаются через `pip install -r pipeline/requirements.txt` или `pip install -e ".[biomed]"`. 10 канонических навыков — в `.agents/skills/`. Канонический протокол — [`biomed-protocol.md`](biomed-protocol.md).
 
 ### 0.2 OpenAlex — детали уровня
 
 > Когда применять, API, аргументы — только в [`../openalex/openalex.md`](../openalex/openalex.md), здесь не дублируются.
+
+### 0.2.1 BioMed Deep Check — детали уровня
+
+> Когда применять, API, аргументы — только в [`../biomed/biomed.md`](../biomed/biomed.md), здесь не дублируются. Канон модуля — в [`biomed-protocol.md`](biomed-protocol.md).
 
 ### 0.3 Scrapling — детали уровня
 
@@ -106,6 +113,8 @@
 
 - [`docx-protocol.md`](docx-protocol.md) — полный протокол правки .docx через python-docx
 - [`architecture.md`](architecture.md) — архитектура конвейера редактуры
+- [`biomed-protocol.md`](biomed-protocol.md) — канонический протокол биомедицинского модуля и Ур.0.7
+- [`../biomed/biomed.md`](../biomed/biomed.md) — standalone-референс BioMed Deep Check
 - [`../openalex/openalex.md`](../openalex/openalex.md) — standalone-референс OpenAlex
 - [`../scrapling/scrapling.md`](../scrapling/scrapling.md) — standalone-референс Scrapling
 - [`../firecrawl/firecrawl.md`](../firecrawl/firecrawl.md) — standalone-референс FireCrawl

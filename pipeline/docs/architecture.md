@@ -138,6 +138,7 @@
   академический минимализм, читаемая типографика, верификация через нативный экспорт слайдов в 1080p PNG (PowerPoint COM API).
   Единый канонический протокол — [`docs/presentation-protocol.md`](presentation-protocol.md).
   Пошаговые инструкции — в промпте роли ([`../prompts/tech-executor.md`](../prompts/tech-executor.md) § Презентации)
+- Headless-визуализация молекулярных структур (PyMOL / PDB): генерация ленточных и поверхностных моделей макромолекул высокого разрешения в `.png` через headless PyMOL и скачивание структур через `pdb_database` для автоматической вставки в итоговые документы `.docx` (канонический протокол — [`docs/biomed-protocol.md`](biomed-protocol.md)).
 
 **Известные риски (что нужно перепроверять рецензенту):**
 
@@ -152,6 +153,8 @@
 (`researcher-web` — функция веб-поиска исполняющего агента, а не отдельная
 модель: FreeBuff либо любой агент сессии со встроенным поиском, напр. текущий).
 Роль факт-чекера не переназначается на постороннюю модель.
+
+**Биомедицинский модуль (Ур. 0.7 «BioMed Deep Check»):** специализированная быстрая полоса проверки медицинских и гистологических статей через PubMed и Europe PMC XML (`pipeline/biomed/factcheck_biomed.py`) плюс 10 автономных навыков баз данных (`.agents/skills/`). Канонический протокол — [`docs/biomed-protocol.md`](biomed-protocol.md).
 
 **Методологическая надстройка (схему не расширяет):** навыки `deep-research`
 (триангуляция + adversarial-pass), `litreview` (поиск PubMed + OpenAlex) и `research`
@@ -508,7 +511,7 @@
 
 Факт-чекер (Роль 5) — это **обязательный гейт** на Этапе 3 и Этапе 4.5 для задач с библиографией или веб-ссылками. Может быть вызван точечно по решению Оркестратора + Рецензента.
 
-> Схема, эскалация, вердикты — только в [`cascade.md`](cascade.md). Команды и пути — только в [`knowledge.md`](knowledge.md) §0.1. Исследовательские навыки (`deep-research`, `litreview`, `deepread`, `research`) — только в [`research-skills.md`](research-skills.md).
+> Схема, эскалация, вердикты — только в [`cascade.md`](cascade.md). Команды и пути — только в [`knowledge.md`](knowledge.md) §0.1. Биомедицинский модуль (Ур.0.7) — [`biomed-protocol.md`](biomed-protocol.md). Исследовательские навыки (`deep-research`, `litreview`, `deepread`, `research`) — только в [`research-skills.md`](research-skills.md).
 
 ---
 

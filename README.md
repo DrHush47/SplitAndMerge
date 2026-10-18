@@ -80,7 +80,7 @@ git pull origin main
 # .venv/bin/python -m pip install -r pipeline/requirements.txt            # Linux/Mac
 
 # Или обновить локальный editable-пакет со всеми расширениями:
-.venv/Scripts/python.exe -m pip install -e ".[web,docx,pptx]"
+.venv/Scripts/python.exe -m pip install -e ".[web,docx,pptx,biomed]"
 ```
 
 ## Документация
@@ -92,6 +92,7 @@ git pull origin main
 | [`docs/cascade.md`](pipeline/docs/cascade.md) | Единый источник схемы каскада — 7 уровней, правила эскалации, словарь вердиктов |
 | [`docs/docx-protocol.md`](pipeline/docs/docx-protocol.md) | Протокол правки .docx через python-docx — правила, шаблоны, антипаттерны |
 | [`docs/presentation-protocol.md`](pipeline/docs/presentation-protocol.md) | Протокол сборки презентаций .pptx — триада доклада, fit_in_box, автоподбор Ultra-HD ассетов, экспорт 1080p |
+| [`docs/biomed-protocol.md`](pipeline/docs/biomed-protocol.md) | Протокол биомедицинского модуля и Ур.0.7 (BioMed Deep Check) — PubMed, Europe PMC, HPA, ClinicalTrials |
 | [`docs/research-skills.md`](pipeline/docs/research-skills.md) | Канон 5 исследовательских навыков (deep-research, litreview, deepread, research, research-summarizer) — карта по ролям/этапам, границы, команды скриптов |
 | [`docs/llm.md`](pipeline/docs/llm.md) | Полное руководство по prompt engineering — техники, шаблоны, безопасность (Anthropic, OpenAI, Google, Meta, OWASP). **Рекомендован рецензенту и (со-)оркестратору для удобного написания промптов** |
 | [`pipeline/manual/manual.md`](pipeline/manual/manual.md) | Быстрый режим фактчекинга без зависимостей — workflow, конвенция имён, референс сканера |
@@ -99,9 +100,9 @@ git pull origin main
 
 ### Карта чтения
 
-Порядок чтения: `pipeline/docs/architecture.md` → `pipeline/docs/cascade.md` → `pipeline/docs/knowledge.md` §0.1 → нужный раздел (`pipeline/docs/docx-protocol.md` для правки .docx; `pipeline/docs/presentation-protocol.md` для сборки презентаций .pptx и материалов доклада; `pipeline/docs/research-skills.md` для исследовательских навыков факт-чекера/рецензента/со-оркестратора; `pipeline/manual/manual.md` для быстрого режима; `pipeline/prompts/` для текста роли; референс уровня `openalex/scrapling/firecrawl` только перед его запуском; **`pipeline/docs/llm.md` — рецензенту и (со-)оркестратору перед написанием промптов**; для роли текстовика оптимален [Writing Editor (Gemini Gem)](https://gemini.google.com/gem/writing-editor) — см. [`pipeline/prompts/textwriter.md`](pipeline/prompts/textwriter.md) § Первоисточники).
+Порядок чтения: `pipeline/docs/architecture.md` → `pipeline/docs/cascade.md` → `pipeline/docs/knowledge.md` §0.1 → нужный раздел (`pipeline/docs/docx-protocol.md` для правки .docx; `pipeline/docs/presentation-protocol.md` для сборки презентаций .pptx и материалов доклада; `pipeline/docs/biomed-protocol.md` для биомедицинского фактчекинга и валидации статей; `pipeline/docs/research-skills.md` для исследовательских навыков факт-чекера/рецензента/со-оркестратора; `pipeline/manual/manual.md` для быстрого режима; `pipeline/prompts/` для текста роли; референс уровня `openalex/scrapling/firecrawl` только перед его запуском; **`pipeline/docs/llm.md` — рецензенту и (со-)оркестратору перед написанием промптов**; для роли текстовика оптимален [Writing Editor (Gemini Gem)](https://gemini.google.com/gem/writing-editor) — см. [`pipeline/prompts/textwriter.md`](pipeline/prompts/textwriter.md) § Первоисточники).
 
-Каноны (не дублируются в других файлах): схема и вердикты — `cascade.md`; команды и пути — `knowledge.md` §0.1; презентации и триада доклада — `presentation-protocol.md`; исследовательские навыки — `research-skills.md`; код шаблона .docx — `pipeline/templates/docx_orchestrator.py`.
+Каноны (не дублируются в других файлах): схема и вердикты — `cascade.md`; команды и пути — `knowledge.md` §0.1; презентации и триада доклада — `presentation-protocol.md`; биомедицинский модуль — `biomed-protocol.md`; исследовательские навыки — `research-skills.md`; код шаблона .docx — `pipeline/templates/docx_orchestrator.py`.
 
 ## Структура проекта
 
@@ -119,11 +120,11 @@ git pull origin main
 │
 ├── .agents/                          ← Навыки и MCP-конфиг
 │   ├── mcp.json.example              ← Шаблон MCP-серверов
-│   └── skills/                       ← 10 навыков (docx, hush-docx,
-│                                       find-skills, deep-research,
-│                                       litreview, deepread, research,
-│                                       research-summarizer, docx-cli,
-│                                       docx-master)
+│   └── skills/                       ← 20 навыков (10 базовых +
+│                                       10 биомедицинских: pubmed,
+│                                       europepmc, biorxiv, clinical_trials,
+│                                       hpa, uniprot, chembl, openfda,
+│                                       pdb, pymol)
 │
 └── pipeline/                         ← Основной код конвейера
     ├── __init__.py                   ← Пакет
@@ -135,12 +136,13 @@ git pull origin main
     ├── targets.json                  ← Цели для проверки (заполняется
     │                                    перед запуском)
 
-    ├── docs/                         ← Документация (7 файлов)
+    ├── docs/                         ← Документация (8 файлов)
     │   ├── architecture.md           ← Архитектура конвейера
     │   ├── knowledge.md              ← Каскад фактчекинга
     │   ├── cascade.md                ← Единый источник схемы каскада
     │   ├── docx-protocol.md          ← Протокол правки .docx
     │   ├── presentation-protocol.md  ← Протокол сборки презентаций (.pptx)
+    │   ├── biomed-protocol.md        ← Протокол биомедицинского модуля
     │   ├── research-skills.md        ← Канон исследовательских навыков
     │   └── llm.md                    ← Prompt engineering (полное руководство)
 
@@ -152,6 +154,10 @@ git pull origin main
     ├── openalex/                     ← Ур.0.5 — валидация DOI
     │   ├── factcheck_openalex.py     ← Скрипт: OpenAlex REST API
     │   └── openalex.md               ← Референс команд
+    │
+    ├── biomed/                       ← Ур.0.7 — BioMed Deep Check
+    │   ├── factcheck_biomed.py       ← Скрипт: PubMed / Europe PMC API
+    │   └── biomed.md                 ← Референс команд
     │
     ├── crawl4ai/                     ← Ур.2 — базовый HTTP-парсинг
     │   └── factcheck_crawl4ai.py     ← Скрипт: Crawl4AI

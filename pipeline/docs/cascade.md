@@ -5,6 +5,7 @@
 
 ```
 Ур.0.5 → OpenAlex API           (мгновенная проверка DOI)
+Ур.0.7 → BioMed Deep Check      (PubMed / Europe PMC XML по PMID/PMCID)
 Ур.1   → researcher-web         (поиск фактов)
 Ур.2   → Crawl4AI               (базовый HTTP-парсинг)
 Ур.3   → Scrapling              (обход Cloudflare, бесплатно)
@@ -17,7 +18,8 @@
 
 | Уровень | Инструмент | Цена | Когда применять | Условие передачи наверх |
 |:---:|---|---|---|---|
-| 0.5 | OpenAlex API | Бесплатно (CC0, без ключа) | Всегда первым делом для URL с `doi.org` или DOI в поле `expect` — мгновенная проверка существования статьи | NOT_FOUND → Ур.1 |
+| 0.5 | OpenAlex API | Бесплатно (CC0, без ключа) | Всегда первым делом для URL с `doi.org` или DOI в поле `expect` — мгновенная проверка существования статьи | NOT_FOUND → Ур.0.7 (если биомед) или Ур.1 |
+| 0.7 | BioMed Deep Check (PubMed / Europe PMC) | Бесплатно (E-utilities / EBI) | Медико-биологические цели с PMID/PMCID в URL/expect; отсекает тяжёлый веб-краулинг | NOT_FOUND / ERROR → Ур.1 (или Ур.2) |
 | 1 | researcher-web | Бесплатно (веб-поиск исполняющего агента — не отдельная модель) | Базовые факты (PMID, DOI, адреса); URL без DOI; после NOT_FOUND на Ур.0.5 | — (следующий по каскаду — Ур.2) |
 | 2 | Crawl4AI | Бесплатно | Базовый HTTP-парсинг любых URL (после проверки DOI) | EMPTY / Cloudflare / мало текста / TIMEOUT → Ур.3 |
 | 3 | Scrapling StealthySession | Бесплатно (локальный Playwright) | Сайт с anti-bot защитой (Cloudflare Turnstile, DataDome); после неудачи Crawl4AI | Не справился (EMPTY/ERROR) → Ур.4 |
@@ -69,4 +71,5 @@ FireCrawl (Ур.4) — только как резерв: **всегда проб
 
 - Технические константы и команды запуска: [`knowledge.md`](knowledge.md) §0.1
 - Роли и гейты конвейера: [`architecture.md`](architecture.md)
+- Биомедицинский модуль (Ур.0.7 и 10 навыков): [`biomed-protocol.md`](biomed-protocol.md)
 - Исследовательские навыки (методология внутри уровней): [`research-skills.md`](research-skills.md)

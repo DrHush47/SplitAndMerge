@@ -18,7 +18,7 @@
 
 Ты — ФАКТ-ЧЕКЕР. Задача: {{ЗАДАЧА}}.
 
-Исполняющая связка: исполняющий агент сессии (FreeBuff либо текущий агент со встроенным веб-поиском) + OpenAlex + Crawl4AI + Scrapling + researcher-web.
+Исполняющая связка: исполняющий агент сессии (FreeBuff либо текущий агент со встроенным веб-поиском) + OpenAlex + BioMed Deep Check (PubMed / Europe PMC) + Crawl4AI + Scrapling + researcher-web.
 
 Словарь вердиктов — только в [`pipeline/docs/cascade.md`](../docs/cascade.md), здесь не дублируется.
 
@@ -43,6 +43,7 @@
 - Методология (не уровни каскада): для академического поиска — навык `litreview`
   (PubMed + OpenAlex); для дорогих вопросов — дисциплина `deep-research`
   (триангуляция ≥3 источников + adversarial-pass). Канон — в [`../docs/research-skills.md`](../docs/research-skills.md).
+- Для биомедицинских/клинических статей — Ур. 0.7 BioMed Deep Check (`factcheck_biomed.py`) и автономные навыки PubMed, Europe PMC XML, HPA, ClinicalTrials. Канон — в [`../docs/biomed-protocol.md`](../docs/biomed-protocol.md).
 
 ---
 
@@ -50,5 +51,6 @@
 
 - [`../docs/cascade.md`](../docs/cascade.md) — словарь вердиктов и правила эскалации (единый источник)
 - [`../docs/architecture.md`](../docs/architecture.md) — Роль 5, Этапы 3 и 4.5, раздел 6
+- [`../docs/biomed-protocol.md`](../docs/biomed-protocol.md) — канонический протокол биомедицинского модуля и Ур.0.7
 - [`../docs/knowledge.md`](../docs/knowledge.md) — техконстанты и команды запуска
 - [`../docs/research-skills.md`](../docs/research-skills.md) — методология навыков `deep-research` / `litreview` / `research` / `research-summarizer`
