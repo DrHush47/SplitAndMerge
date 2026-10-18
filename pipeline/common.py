@@ -54,7 +54,7 @@ def read_targets(path, validate_url_https=True):
 
     Exits with code 2 on validation failure.
     """
-    raw = path.read_text(encoding="utf-8")
+    raw = path.read_text(encoding="utf-8-sig")
     try:
         data = json.loads(raw)
     except json.JSONDecodeError as exc:

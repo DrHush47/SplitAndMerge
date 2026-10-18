@@ -95,6 +95,7 @@ def lookup_pubmed_pmid(pmid, timeout=15):
                 norm = {
                     "id": pmid,
                     "pmid": pmid,
+                    "pmcid": "",
                     "title": entry.get("title", ""),
                     "authors": authors,
                     "first_author": authors[0] if authors else "",
@@ -103,16 +104,24 @@ def lookup_pubmed_pmid(pmid, timeout=15):
                     "volume": entry.get("volume", ""),
                     "issue": entry.get("issue", ""),
                     "pages": entry.get("pages", ""),
-                    "doi": entry.get("articleids", {}).get("doi", "") if isinstance(entry.get("articleids"), dict) else "",
+                    "doi": "",
                     "source_api": "NCBI E-utilities"
                 }
-                # Поиск DOI среди articleids
-                if isinstance(entry.get("articleids"), list):
-                    for aid in entry.get("articleids"):
-                        if aid.get("idtype") == "doi":
-                            norm["doi"] = aid.get("value", "")
-                        elif aid.get("idtype") == "pmc":
-                            norm["pmcid"] = aid.get("value", "")
+                # Извлечение DOI и PMCID из списка articleids в ответе NCBI
+                articleids = entry.get("articleids", [])
+                if isinstance(articleids, list):
+                    for aid in articleids:
+                        if isinstance(aid, dict):
+                            idtype = aid.get("idtype", "").lower()
+                            if idtype == "doi":
+                                norm["doi"] = aid.get("value", "")
+                            elif idtype in ("pmc", "pmcid"):
+                                val = aid.get("value", "")
+                                m_pmc = re.search(r"(PMC\d+)", val, re.IGNORECASE)
+                                if m_pmc:
+                                    norm["pmcid"] = m_pmc.group(1).upper()
+                                else:
+                                    norm["pmcid"] = val if val.upper().startswith("PMC") else f"PMC{val}"
                 return norm, None
             return None, "NOT_FOUND"
     except urllib.error.HTTPError as exc:
@@ -172,61 +181,265 @@ def lookup_europepmc(query_id, is_pmc=False, timeout=15):
         return None, f"{type(exc).__name__}: {exc}"
 
 
+# =================== ТРАНСЛИТЕРАЦИЯ И БИОМЕДИЦИНСКИЕ ТЕРМИНЫ ===================
+
+CYRILLIC_TO_LATIN = {
+    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e',
+    'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+    'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+    'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'shch',
+    'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+}
+
+
+def transliterate_cyrillic(text: str) -> str:
+    """Транслитерация кириллицы в латиницу для сопоставления фамилий и терминов."""
+    return "".join(CYRILLIC_TO_LATIN.get(ch, ch) for ch in text.lower())
+
+
+def has_cyrillic(text: str) -> bool:
+    """Проверка наличия символов кириллицы в строке."""
+    return bool(re.search(r'[\u0400-\u04FF]', text))
+
+
+# Двуязычный словарь медицинских и гистологических корней (RU -> EN stem)
+BIOMED_COGNATES = {
+    # Органы, ткани, клетки
+    "миокард": "myocard",
+    "кардио": "cardio",
+    "кардиолог": "cardiolog",
+    "сердеч": "cardiac",
+    "сердц": "heart",
+    "сосуд": "vascul",
+    "артери": "arter",
+    "вен": "vein",
+    "эндотели": "endothel",
+    "печен": "hepat",
+    "печеноч": "hepat",
+    "почеч": "renal",
+    "почек": "renal",
+    "почк": "kidney",
+    "легк": "pulmon",
+    "легоч": "pulmon",
+    "мозг": "cerebr",
+    "мозгов": "cerebr",
+    "ткань": "tissue",
+    "тканей": "tissue",
+    "ткани": "tissue",
+    "клетк": "cell",
+    "клеточ": "cell",
+    "кров": "blood",
+    "сыворотк": "serum",
+    "плазм": "plasma",
+    # Патологические и морфологические процессы
+    "гипертроф": "hypertroph",
+    "морфолог": "morpholog",
+    "морфометр": "morphometr",
+    "гистолог": "histolog",
+    "онколог": "oncolog",
+    "опухол": "tumor",
+    "рак": "cancer",
+    "карцином": "carcinom",
+    "диабет": "diabet",
+    "атеросклероз": "atheroscler",
+    "ишеми": "ischem",
+    "инфаркт": "infarct",
+    "некроз": "necro",
+    "фиброз": "fibros",
+    "склероз": "scleros",
+    "воспален": "inflammat",
+    "апоптоз": "apoptos",
+    "пролифераци": "proliferat",
+    "мутаци": "mutat",
+    "гипертензи": "hypertens",
+    # Молекулярная биология, биохимия, генетика
+    "экспресси": "express",
+    "ген": "gene",
+    "геном": "genom",
+    "генети": "genet",
+    "хромосом": "chromosom",
+    "белок": "protein",
+    "белк": "protein",
+    "рецептор": "receptor",
+    "ингибитор": "inhibitor",
+    "активатор": "activator",
+    "фермент": "enzym",
+    "маркер": "marker",
+    "биомаркер": "biomarker",
+    "молекуляр": "molecular",
+    "структур": "structur",
+    "регуляци": "regulat",
+    "функци": "function",
+    "активност": "activ",
+    # Клиника и терапия
+    "терапи": "therap",
+    "клинич": "clinic",
+    "фармакол": "pharmacol",
+    "биопси": "biops",
+    "синдром": "syndrom",
+    "патолог": "patholog",
+    "анатом": "anatom",
+    "иммун": "immun",
+    "пациент": "patient",
+    "стади": "stage",
+    "диагностик": "diagnos",
+    "трансплант": "transplant",
+    "препарат": "drug",
+    "лекарств": "medicat",
+}
+
+
 # =================== КРОСС-ПРОВЕРКА FACT vs METADATA ===================
 
 def check_biomed_fact_match(fact, data):
-    """Сравнить fact-строку с биомедицинскими метаданными (автор, ключевые слова названия)."""
+    """Сравнить fact-строку с биомедицинскими метаданными (автор, ключевые слова названия).
+
+    Возвращает (verdict, detail), где:
+      - verdict: "CONFIRMED" | "MISMATCH" | "UNCERTAIN"
+      - detail: текстовое описание совпавших и несовпавших признаков
+
+    Принципы Evidence-First:
+      - Одно лишь совпадение фамилии автора при 0% совпадении темы статьи бракуется как MISMATCH
+        (FP-киллер против цитирования чужой статьи известного автора или галлюцинаций LLM).
+      - Кириллические факты транслитерируются для поиска авторов и проверяются по словарю
+        биологических и медицинских корней. Если программно подтвердить русский факт
+        против англоязычной статьи невозможно, возвращается UNCERTAIN (эскалация Рецензенту),
+        а не ложный MISMATCH.
+    """
     title = (data.get("title") or "").lower()
     first_author = data.get("first_author", "")
+    authors = data.get("authors", [])
     fact_lower = fact.lower()
+    fact_translit = transliterate_cyrillic(fact_lower)
+    is_cyrillic = has_cyrillic(fact)
 
     checks_passed = []
     checks_failed = []
 
-    # 1. Проверка фамилии автора
-    author_surname = first_author.split()[0] if first_author else ""
-    if author_surname and len(author_surname) >= 2 and author_surname.lower() in fact_lower:
-        checks_passed.append(f"author '{author_surname}' found in fact")
-    elif author_surname:
+    # 1. Проверка фамилии автора (с поддержкой транслитерации и списка соавторов)
+    author_hit = False
+    matched_author = ""
+    author_surname = first_author.split()[0].strip(".,") if first_author else ""
+
+    if author_surname and len(author_surname) >= 2:
+        sn_lower = author_surname.lower()
+        if sn_lower in fact_lower or sn_lower in fact_translit:
+            author_hit = True
+            matched_author = author_surname
+            checks_passed.append(f"first author '{author_surname}' found in fact")
+
+    if not author_hit and authors:
+        for a in authors:
+            sn = a.split()[0].strip(".,") if a.split() else ""
+            if len(sn) >= 3:
+                sn_lower = sn.lower()
+                if sn_lower in fact_lower or sn_lower in fact_translit:
+                    author_hit = True
+                    matched_author = sn
+                    checks_passed.append(f"co-author '{sn}' found in fact")
+                    break
+
+    if not author_hit and author_surname:
         checks_failed.append(f"author '{author_surname}' NOT in fact")
 
-    # 2. Проверка значимых слов названия
+    # 2. Выделение содержательной части факт-строки
     fact_title_part = fact_lower
-    for sep in [" — ", ". ", " —", "— "]:
+    for sep in [" — ", ". ", " —", "— ", ": "]:
         if sep in fact_lower:
             fact_title_part = fact_lower.split(sep, 1)[1]
             break
 
-    fact_words = {
-        w.strip(".,;:()[]«»\"'") for w in fact_title_part.split()
-        if len(w.strip(".,;:()[]«»\"'")) >= 4 and w.strip(".,;:()[]«»\"'").lower() not in STOP_WORDS
+    fact_words = [
+        w.strip(".,;:()[]«»\"'/-") for w in fact_title_part.split()
+    ]
+    fact_words = [
+        w for w in fact_words
+        if len(w) >= 4 and w not in STOP_WORDS
+    ]
+
+    title_words = {
+        w.strip(".,;:()[]«»\"'/-") for w in title.split()
     }
-    title_words = {w.strip(".,;:()[]«»\"'") for w in title.split() if len(w.strip(".,;:()[]«»\"'")) >= 4}
-    matches = fact_words & title_words
+    title_words = {w for w in title_words if len(w) >= 4 and w not in STOP_WORDS}
+
+    # 3. Сопоставление слов названия (прямое, через корни и транслитерацию)
+    matched_fact_words = set()
+    for fw in fact_words:
+        # Прямое совпадение
+        if fw in title_words or fw in title:
+            matched_fact_words.add(fw)
+            continue
+        # Проверка медицинских и гистологических корней
+        for ru_stem, en_stem in BIOMED_COGNATES.items():
+            if ru_stem in fw:
+                if any(en_stem in tw for tw in title_words) or en_stem in title:
+                    matched_fact_words.add(fw)
+                    break
+        # Проверка транслитерированного корня
+        fw_translit = transliterate_cyrillic(fw)
+        if len(fw_translit) >= 5:
+            prefix5 = fw_translit[:5]
+            if any(prefix5 in tw for tw in title_words):
+                matched_fact_words.add(fw)
+
+    overlap = len(matched_fact_words) / len(fact_words) if fact_words else 0.0
+    matches_count = len(matched_fact_words)
 
     if len(fact_words) >= 3:
-        overlap = len(matches) / len(fact_words)
         if overlap >= 0.25:
-            checks_passed.append(f"title overlap {overlap:.0%} ({len(matches)}/{len(fact_words)} words)")
+            checks_passed.append(f"title overlap {overlap:.0%} ({matches_count}/{len(fact_words)} words)")
         else:
-            checks_failed.append(f"title overlap only {overlap:.0%}")
+            checks_failed.append(f"title overlap only {overlap:.0%} ({matches_count}/{len(fact_words)} words)")
     elif len(fact_words) >= 1:
-        if matches:
-            checks_passed.append(f"title words match: {matches}")
+        if matches_count >= 1:
+            checks_passed.append(f"title words match: {matched_fact_words}")
         else:
             checks_failed.append("no title word overlap")
 
-    is_match = len(checks_passed) > 0
     detail = "; ".join(checks_passed + checks_failed)
-    return is_match, detail
+
+    # 4. Решение: Evidence-First классификация вердикта
+    # Сценарий A: Высокое совпадение названия (>= 25% при >= 3 словах, или >= 2 слов)
+    if (len(fact_words) >= 3 and overlap >= 0.25) or matches_count >= 2:
+        return "CONFIRMED", detail
+
+    # Сценарий B: Одно совпавшее слово при коротком названии (<= 4 слов)
+    if matches_count >= 1 and len(fact_words) <= 4:
+        if author_hit:
+            return "CONFIRMED", detail
+        elif not is_cyrillic and overlap >= 0.30:
+            return "CONFIRMED", detail
+
+    # Сценарий C: Автор совпал, но перекрытие названия 0% (при наличии проверяемых слов)
+    if author_hit and matches_count == 0 and len(fact_words) >= 1:
+        if is_cyrillic:
+            # Для кириллического факта: автор распознан, но русские слова могут быть вне словаря корней
+            return "UNCERTAIN", f"author '{matched_author}' found, but title is Cyrillic without known cognates; {detail}"
+        else:
+            # Для латинского факта: тот же автор, но название не совпадает ни на одно слово -> явный MISMATCH (FP-киллер)
+            return "MISMATCH", f"FP-killer: author '{matched_author}' found, but 0% title overlap; {detail}"
+
+    # Сценарий D: Автор совпал и в факте не было проверяемых слов названия
+    if author_hit and len(fact_words) == 0:
+        return "CONFIRMED", detail
+
+    # Сценарий E: Ни автор, ни название не подтвердились
+    if is_cyrillic:
+        # Языковой барьер RU -> EN: статья существует в PubMed, но автоматический анализ не дал подтверждения
+        return "UNCERTAIN", f"Cyrillic fact vs English metadata: cannot verify automatically ({detail})"
+
+    return "MISMATCH", detail
 
 
 # =================== СОХРАНЕНИЕ РЕЗУЛЬТАТА ===================
 
 def save_biomed_result(target, id_val, id_type, data, error, status, prefix, out_dir):
-    """Сохранить артефакт workspace/{prefix}_{id}.txt."""
+    """Сохранить артефакт workspace/{prefix}_{clean_id}.txt."""
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_file = out_dir / f"{prefix}_{target['id']}.txt"
+    clean_id = re.sub(r"[^\w.-]", "_", str(target.get("id", "target"))).strip(".")
+    if not clean_id:
+        clean_id = "target"
+    out_file = out_dir / f"{prefix}_{clean_id}.txt"
 
     lines = [
         f"URL: {target.get('url', '')}",
@@ -291,9 +504,12 @@ def batch_lookup_biomed(targets, prefix="bm", timeout=15, out_dir=None, crossche
 
         if data:
             if crosscheck:
-                is_match, detail = check_biomed_fact_match(t.get("fact", ""), data)
-                if is_match:
+                verdict, detail = check_biomed_fact_match(t.get("fact", ""), data)
+                if verdict == "CONFIRMED":
                     status = "CONFIRMED"
+                elif verdict == "UNCERTAIN":
+                    status = "UNCERTAIN"
+                    error = f"Crosscheck uncertain: {detail}"
                 else:
                     status = "MISMATCH"
                     error = f"Crosscheck failed: {detail}"
@@ -359,14 +575,17 @@ def main():
 
     confirmed = sum(1 for r in results.values() if r["status"] == "CONFIRMED")
     mismatch = sum(1 for r in results.values() if r["status"] == "MISMATCH")
+    uncertain = sum(1 for r in results.values() if r["status"] == "UNCERTAIN")
     errors = sum(1 for r in results.values() if r["status"] == "ERROR")
     skipped = sum(1 for r in results.values() if r["status"] == "SKIP")
 
     print("\n" + "=" * 60)
-    print(f"SUMMARY (biomed): CONFIRMED={confirmed}  MISMATCH={mismatch}  ERROR={errors}  SKIP={skipped}")
+    print(f"SUMMARY (biomed): CONFIRMED={confirmed}  MISMATCH={mismatch}  UNCERTAIN={uncertain}  ERROR={errors}  SKIP={skipped}")
     print("=" * 60)
 
-    sys.exit(1 if mismatch > 0 else 0)
+    # Код выхода: 1 при наличии MISMATCH, UNCERTAIN или ERROR (требуется разбор / эскалация)
+    needs_review = (mismatch > 0 or errors > 0 or uncertain > 0)
+    sys.exit(1 if needs_review else 0)
 
 
 if __name__ == "__main__":
