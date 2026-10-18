@@ -108,7 +108,6 @@ git pull origin main
 ```
 ├── README.md                         ← Этот файл
 ├── pyproject.toml                    ← Пакет проекта: установка и команда `sam`
-├── LICENSE                           ← Условия использования (MIT)
 ├── skills-lock.json                  ← Лок внешних навыков (docx,
 │                                       find-skills с GitHub; локальные
 │                                       hush-* и research-навыки — вне лока)

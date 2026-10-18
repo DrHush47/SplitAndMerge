@@ -7,7 +7,6 @@ name = "splitandmerge"
 version = "0.2.0"
 description = "Конвейер редактуры научных текстов и каскадный веб-фактчекинг (OpenAlex → Crawl4AI → Scrapling → FireCrawl → человек → Gemini DeepSearch)."
 readme = "README.md"
-license = {text = "MIT"}
 requires-python = ">=3.10"
 
 [project.optional-dependencies]
