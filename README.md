@@ -108,7 +108,10 @@ git pull origin main
 ```
 ├── README.md                         ← Этот файл
 ├── pyproject.toml                    ← Пакет проекта: установка и команда `sam`
-├── skills-lock.json                  ← Лок внешних навыков (hush-*, deep-research, litreview, deepread, research, research-summarizer, docx-cli, docx-master — локально)
+├── LICENSE                           ← Условия использования (MIT)
+├── skills-lock.json                  ← Лок внешних навыков (docx,
+│                                       find-skills с GitHub; локальные
+│                                       hush-* и research-навыки — вне лока)
 ├── .gitignore / .editorconfig        ← Конфиги git и редактора
 ├── .venv/                            ← Виртуальное окружение (вне git)
 ├── workspace/                        ← Каталог артефактов сессий (создаётся скриптами при запуске, вне git)
@@ -116,8 +119,9 @@ git pull origin main
 ├── sandbox/                          ← Локальный полигон экспериментов (только локально, вне git)
 │
 ├── .agents/                          ← Навыки и MCP-конфиг
-│   ├── mcp.json.example              ← Шаблон MCP-серверов    │   └── skills/                       ← 10 навыков (docx, hush-docx,
-│                                       find-skills + deep-research,
+│   ├── mcp.json.example              ← Шаблон MCP-серверов
+│   └── skills/                       ← 10 навыков (docx, hush-docx,
+│                                       find-skills, deep-research,
 │                                       litreview, deepread, research,
 │                                       research-summarizer, docx-cli,
 │                                       docx-master)
@@ -126,6 +130,8 @@ git pull origin main
     ├── __init__.py                   ← Пакет
     ├── common.py                     ← Общие утилиты (prefix-валидация,
     │                                    чтение targets.json)
+    ├── sam.py                        ← Главный скрипт: авто-каскад
+    ├── verdicts.py                   ← Вердикты и evidence-states
     ├── requirements.txt              ← Python-зависимости
     ├── targets.json                  ← Цели для проверки (заполняется
     │                                    перед запуском)
@@ -140,7 +146,9 @@ git pull origin main
     │   └── llm.md                    ← Prompt engineering (полное руководство)
 
     ├── prompts/                      ← Шаблоны ролей (5 заготовок-промптов)
-    ├── templates/                    ← Журнал этапов (progress.template.md)
+    ├── templates/                    ← Шаблоны и канон-код
+    │   ├── progress.template.md      ← Журнал этапов конвейера
+    │   └── docx_orchestrator.py      ← Канон кода шаблона .docx
 
     ├── openalex/                     ← Ур.0.5 — валидация DOI
     │   ├── factcheck_openalex.py     ← Скрипт: OpenAlex REST API
