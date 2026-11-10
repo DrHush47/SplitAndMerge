@@ -108,6 +108,7 @@ git pull origin main
 
 ```
 ├── README.md                         ← Этот файл
+├── AGENTS.md                         ← Манифест и таблица маршрутизации (SSOT) для ИИ-агентов
 ├── pyproject.toml                    ← Пакет проекта: установка и команда `sam`
 ├── skills-lock.json                  ← Лок внешних навыков (docx,
 │                                       find-skills с GitHub; локальные
