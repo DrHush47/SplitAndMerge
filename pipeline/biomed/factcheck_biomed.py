@@ -27,7 +27,7 @@ if str(_REPO_ROOT) not in sys.path:
 from pipeline.common import (
     read_targets, validate_prefix, fix_windows_console, default_out_dir,
     STOP_WORDS, CYRILLIC_TO_LATIN, BIOMED_COGNATES,
-    transliterate_cyrillic, has_cyrillic,
+    transliterate_cyrillic, has_cyrillic, has_word_token, match_cognate_word,
 )
 
 PMID_URL_RE = re.compile(r"(?:pubmed\.ncbi\.nlm\.nih\.gov|ncbi\.nlm\.nih\.gov/pubmed)/(\d+)", re.IGNORECASE)
@@ -214,14 +214,13 @@ def check_biomed_fact_match(fact, data):
     checks_passed = []
     checks_failed = []
 
-    # 1. Проверка фамилии автора (с поддержкой транслитерации и списка соавторов)
+    # 1. Проверка фамилии автора (строго по границам токенов, с поддержкой транслитерации и соавторов)
     author_hit = False
     matched_author = ""
     author_surname = first_author.split()[0].strip(".,") if first_author else ""
 
     if author_surname and len(author_surname) >= 2:
-        sn_lower = author_surname.lower()
-        if sn_lower in fact_lower or sn_lower in fact_translit:
+        if has_word_token(author_surname, fact_lower) or has_word_token(author_surname, fact_translit):
             author_hit = True
             matched_author = author_surname
             checks_passed.append(f"first author '{author_surname}' found in fact")
@@ -230,8 +229,7 @@ def check_biomed_fact_match(fact, data):
         for a in authors:
             sn = a.split()[0].strip(".,") if a.split() else ""
             if len(sn) >= 3:
-                sn_lower = sn.lower()
-                if sn_lower in fact_lower or sn_lower in fact_translit:
+                if has_word_token(sn, fact_lower) or has_word_token(sn, fact_translit):
                     author_hit = True
                     matched_author = sn
                     checks_passed.append(f"co-author '{sn}' found in fact")
@@ -260,25 +258,14 @@ def check_biomed_fact_match(fact, data):
     }
     title_words = {w for w in title_words if len(w) >= 4 and w not in STOP_WORDS}
 
-    # 3. Сопоставление слов названия (прямое, через корни и транслитерацию)
+    # 3. Сопоставление слов названия (прямое + общий строгий матчер когнатов из pipeline.common)
     matched_fact_words = set()
     for fw in fact_words:
-        # Прямое совпадение
-        if fw in title_words or fw in title:
+        if fw in title_words or has_word_token(fw, title):
             matched_fact_words.add(fw)
             continue
-        # Проверка медицинских и гистологических корней
-        for ru_stem, en_stem in BIOMED_COGNATES.items():
-            if ru_stem in fw:
-                if any(en_stem in tw for tw in title_words) or en_stem in title:
-                    matched_fact_words.add(fw)
-                    break
-        # Проверка транслитерированного корня
-        fw_translit = transliterate_cyrillic(fw)
-        if len(fw_translit) >= 5:
-            prefix5 = fw_translit[:5]
-            if any(prefix5 in tw for tw in title_words):
-                matched_fact_words.add(fw)
+        if match_cognate_word(fw, title_words):
+            matched_fact_words.add(fw)
 
     overlap = len(matched_fact_words) / len(fact_words) if fact_words else 0.0
     matches_count = len(matched_fact_words)

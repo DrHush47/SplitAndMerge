@@ -23,7 +23,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from common import (
     read_targets, validate_prefix, fix_windows_console, default_out_dir,
-    STOP_WORDS, BIOMED_COGNATES, transliterate_cyrillic, has_cyrillic,
+    STOP_WORDS, transliterate_cyrillic, has_cyrillic, has_word_token,
+    match_cognate_word,
 )
 
 DOI_URL_RE = re.compile(r"doi\.org/(10\.[^/?#]+/[^/?#]+)")
@@ -102,25 +103,50 @@ def format_authors(data):
 
 # =================== КРОСС-ПРОВЕРКА FACT vs METADATA ===================
 
+def _extract_author_surname_strict(display_name: str) -> str:
+    """Извлечь только фамилию из display_name OpenAlex, не путая с личным именем.
+
+    Форматы OpenAlex:
+      - 'Nikita S. Popov' / 'S. A. Donskov' → 'Popov' / 'Donskov' (последний токен)
+      - 'Donskov, S. A.' → 'Donskov' (инвертированная запись с запятой)
+      - 'Topol' → 'Topol'
+    """
+    name = (display_name or "").strip()
+    if not name:
+        return ""
+    parts = name.split()
+    if len(parts) == 1:
+        return parts[0].strip(".,")
+    if parts[0].endswith(","):
+        return parts[0].strip(".,")
+    return parts[-1].strip(".,")
+
+
 def classify_fact_match(fact, data):
     """Сравнить fact-строку с метаданными OpenAlex (включая RU ↔ EN транслитерацию).
 
     Возвращает (status: str, detail: str), где status — один из:
-      - "CONFIRMED": совпал автор (прямо или через транслитерацию) и/или заголовок
-      - "UNCERTAIN": языковой барьер (кириллический fact против англоязычного title
-                     без совпадения фамилии/корней — требуется ручная сверка или
-                     лёгкий фетчер, а не ложный MISMATCH)
-      - "MISMATCH":  ни автор, ни заголовок не совпали в одном алфавите
+      - "CONFIRMED":
+          * в одном алфавите (EN↔EN): совпал первый автор (целым токеном) и/или заголовок;
+          * при языковом барьере (RU fact vs EN title): требуется сильное подтверждение —
+            либо первый автор (фамилия токеном) + >=1 совпавшее слово заголовка,
+            либо соавтор (фамилия токеном) + >=2 совпавших слова заголовка,
+            либо >=2 совпавших слова заголовка при overlap >= 30%.
+            Одиночное совпадение автора/соавтора без темы или 1 случайный корень НЕ подтверждают.
+      - "UNCERTAIN": языковой барьер или слабое совпадение (требуется ручная сверка
+                     или лёгкий фетчер, а не ложный CONFIRMED и не ложный MISMATCH).
+      - "MISMATCH":  ни автор, ни заголовок не совпали в одном алфавите.
 
     Эмпирическое обоснование:
       - Тест 27 источников (2026-07-19): DOI 10.1371/journal.pone.0153335 реален,
         но fact не совпадает со статьёй → MISMATCH.
       - Сессия 2026-11-19 (русскоязычные статьи ВАК с DOI в OpenAlex): кириллица в fact
-        против латиницы OpenAlex давала 7/7 ложных MISMATCH; перенос RU↔EN транслитерации
-        и мягкого UNCERTAIN из factcheck_biomed.py устраняет ложные срабатывания.
+        против латиницы OpenAlex давала 7/7 ложных MISMATCH; RU↔EN сопоставление
+        по токенам фамилий, точным/префиксным когнатам и мягкому UNCERTAIN устраняет
+        и ложные MISMATCH, и ложные CONFIRMED.
     """
     title = (data.get("title") or "").lower()
-    surname = get_first_author_surname(data)  # может быть str или tuple
+    surname = get_first_author_surname(data)  # может быть str или tuple (совместимость EN↔EN)
     fact_lower = fact.lower()
     fact_cyrillic = has_cyrillic(fact)
     fact_translit = transliterate_cyrillic(fact_lower) if fact_cyrillic else fact_lower
@@ -129,44 +155,55 @@ def classify_fact_match(fact, data):
     checks_passed = []
     checks_failed = []
 
-    # Проверка 1: фамилия первого автора в fact-строке (прямо + транслит RU→EN)
+    # Проверка 1: автор (раздельно: первый автор vs соавтор; строго по границам токенов)
     if isinstance(surname, tuple):
         surnames = list(surname)
     else:
         surnames = [surname] if surname else []
 
-    author_matched = False
-    for s in surnames:
-        if s and len(s) >= 2:
-            s_low = s.lower()
-            if s_low in fact_lower:
+    first_author_matched = False
+    coauthor_matched = False
+    authorships = data.get("authorships", [])
+
+    if not fact_cyrillic:
+        for s in surnames:
+            if s and len(s) >= 2 and has_word_token(s, fact_lower):
                 checks_passed.append(f"author '{s}' found in fact")
-                author_matched = True
+                first_author_matched = True
                 break
-            if fact_cyrillic and s_low in fact_translit:
-                checks_passed.append(f"author '{s}' found in fact (translit)")
-                author_matched = True
-                break
+    else:
+        first_display = (
+            (authorships[0].get("author") or {}).get("display_name", "")
+            if authorships else ""
+        )
+        first_sn = _extract_author_surname_strict(first_display)
+        if first_sn and len(first_sn) >= 2:
+            if has_word_token(first_sn, fact_lower):
+                checks_passed.append(f"author '{first_sn}' found in fact")
+                first_author_matched = True
+            elif has_word_token(first_sn, fact_translit):
+                checks_passed.append(f"author '{first_sn}' found in fact (translit)")
+                first_author_matched = True
 
-    # Для кириллической цитаты дополнительно проверяем соавторов (если первый автор транслитерирован иначе)
-    if not author_matched and fact_cyrillic:
-        for au in data.get("authorships", [])[1:]:
-            aname = (au.get("author") or {}).get("display_name", "")
-            parts = aname.split()
-            cand_surnames = [parts[-1], parts[0]] if len(parts) >= 2 else parts
-            for cs in cand_surnames:
-                cs_clean = cs.strip(".,")
-                if len(cs_clean) >= 3 and cs_clean.lower() in fact_translit:
-                    checks_passed.append(f"co-author '{cs_clean}' found in fact (translit)")
-                    author_matched = True
-                    break
-            if author_matched:
-                break
+        # Соавторы проверяются только по фамилии (не по личному имени) и только целым токеном
+        if not first_author_matched:
+            for au in authorships[1:]:
+                aname = (au.get("author") or {}).get("display_name", "")
+                cs = _extract_author_surname_strict(aname)
+                if len(cs) >= 3:
+                    if has_word_token(cs, fact_lower):
+                        checks_passed.append(f"co-author '{cs}' found in fact")
+                        coauthor_matched = True
+                        break
+                    if has_word_token(cs, fact_translit):
+                        checks_passed.append(f"co-author '{cs}' found in fact (translit)")
+                        coauthor_matched = True
+                        break
 
-    if not author_matched and surnames:
+    if not first_author_matched and not coauthor_matched and surnames:
         checks_failed.append(f"authors {surnames} NOT in fact")
 
-    # Проверка 2: значимые слова из fact в title OpenAlex
+    # Проверка 2: значимые слова из fact в title OpenAlex (отдельно от автора)
     fact_title_part = fact_lower
     for sep in [" — ", ". ", " —", "— "]:
         if sep in fact_lower:
@@ -184,35 +221,59 @@ def classify_fact_match(fact, data):
     title_words = {w for w in title_words if w}
 
     matches = set(fact_words & title_words)
-    # При языковом барьере (RU fact vs EN title) дополнительно сверяем медицинские корни и транслит-префикс
+    # При языковом барьере (RU fact vs EN title) сверяем через общий строгий матчер когнатов
     if lang_barrier:
         for fw in fact_words - matches:
-            for ru_stem, en_stem in BIOMED_COGNATES.items():
-                if ru_stem in fw and (any(en_stem in tw for tw in title_words) or en_stem in title):
-                    matches.add(fw)
-                    break
-            if fw not in matches:
-                fw_tr = transliterate_cyrillic(fw)
-                if len(fw_tr) >= 5 and any(fw_tr[:5] in tw for tw in title_words):
-                    matches.add(fw)
+            if match_cognate_word(fw, title_words):
+                matches.add(fw)
+
+    title_any_match = bool(matches)
+    title_strong_match = False
 
     if len(fact_words) >= 3:
         overlap = len(matches) / len(fact_words)
-        if overlap >= 0.3:
+        if lang_barrier:
+            title_strong_match = len(matches) >= 2 and overlap >= 0.3
+        else:
+            title_strong_match = overlap >= 0.3
+        if title_strong_match:
             checks_passed.append(f"title overlap {overlap:.0%} ({len(matches)}/{len(fact_words)} words)")
         else:
             checks_failed.append(f"title overlap only {overlap:.0%} ({len(matches)}/{len(fact_words)} words)")
     elif len(fact_words) >= 1:
-        if matches:
+        if lang_barrier:
+            title_strong_match = len(matches) >= 2
+        else:
+            title_strong_match = bool(matches)
+        if title_strong_match:
             checks_passed.append(f"title words match: {matches}")
+        elif matches:
+            checks_failed.append(f"weak title match under language barrier ({len(matches)} word: {matches})")
         else:
             checks_failed.append(f"no title word overlap (fact words: {fact_words})")
 
     detail = "; ".join(checks_passed + checks_failed)
-    if checks_passed:
-        return "CONFIRMED", detail
+
+    # Классификация вердикта с раздельным учётом автора и заголовка
     if lang_barrier:
+        if title_strong_match:
+            return "CONFIRMED", detail
+        if first_author_matched and title_any_match:
+            return "CONFIRMED", detail
+        if coauthor_matched and len(matches) >= 2:
+            return "CONFIRMED", detail
+        if first_author_matched or coauthor_matched:
+            return "UNCERTAIN", f"weak cross-language match (author matched without title confirmation); {detail}"
+        if title_any_match:
+            return "UNCERTAIN", f"weak cross-language match (insufficient title overlap); {detail}"
         return "UNCERTAIN", f"language barrier (Cyrillic fact vs English metadata); {detail}"
+
+    if first_author_matched or title_strong_match:
+        return "CONFIRMED", detail
+    if coauthor_matched and title_any_match:
+        return "CONFIRMED", detail
+    if coauthor_matched:
+        return "UNCERTAIN", f"co-author only match without title overlap; {detail}"
     return "MISMATCH", detail
 
 

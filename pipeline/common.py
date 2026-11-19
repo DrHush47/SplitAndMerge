@@ -140,34 +140,64 @@ def has_cyrillic(text: str) -> bool:
     return bool(re.search(r'[\u0400-\u04FF]', text))
 
 
-# Двуязычный словарь медицинских, гистологических и научных корней (RU stem -> EN stem)
+def has_word_token(token: str, text: str) -> bool:
+    """Проверка вхождения слова/фамилии как целого токена (границы букв, не подстрока).
+
+    Исключает ложные срабатывания вроде 'lin' внутри 'klinicheskie' или 'smith' внутри 'smithson'.
+    """
+    tok = token.strip().lower()
+    if not tok:
+        return False
+    return bool(re.search(rf"(?<![^\W\d_]){re.escape(tok)}(?![^\W\d_])", text.lower()))
+
+
+# Точные словарные пары для коротких/омонимичных медицинских терминов,
+# где префиксное или подстрочное совпадение давало бы ложные срабатывания
+# (напр., «ген» в «агент/рентген/патоген», «рак» в «характер/практика/тракт», «вен» в «проведение»).
+EXACT_BIOMED_COGNATES = (
+    (
+        frozenset({"ген", "гена", "гены", "генов", "генам", "генах", "геном", "генами"}),
+        frozenset({"gene", "genes"}),
+    ),
+    (
+        frozenset({"рак", "рака", "раке", "раком", "раковый", "раковая", "раковое", "раковые", "раковых"}),
+        frozenset({"cancer", "cancers", "cancerous"}),
+    ),
+    (
+        frozenset({"вен", "вена", "вены", "вене", "веной", "венах", "венам", "венозный", "венозная", "венозных", "венозного"}),
+        frozenset({"vein", "veins", "venous"}),
+    ),
+    (
+        frozenset({"ткань", "ткани", "тканей", "тканях", "тканям", "тканью", "тканевой", "тканевых", "тканевого"}),
+        frozenset({"tissue", "tissues"}),
+    ),
+)
+
+
+# Двуязычный словарь медицинских, гистологических и научных префиксов (RU prefix -> EN prefix | tuple[EN prefix, ...]).
+# Матчится строго по началу слова (startswith) с обеих сторон, без поиска внутри случайных подстрок.
 BIOMED_COGNATES = {
     # Органы, ткани, клетки
     "миокард": "myocard",
     "кардио": "cardio",
     "кардиолог": "cardiolog",
-    "сердеч": "cardiac",
-    "сердц": "heart",
+    "сердеч": ("cardiac", "heart"),
+    "сердц": ("heart", "cardiac"),
     "сосуд": "vascul",
     "артери": "arter",
-    "вен": "vein",
+    "венозн": "venous",
     "эндотели": "endothel",
     "эпители": "epithel",
     "пародонт": "periodont",
     "пищеварит": "digestiv",
     "печен": "hepat",
-    "печеноч": "hepat",
-    "почеч": "renal",
-    "почек": "renal",
-    "почк": "kidney",
-    "легк": "pulmon",
-    "легоч": "pulmon",
-    "мозг": "cerebr",
-    "мозгов": "cerebr",
-    "ткань": "tissue",
-    "тканей": "tissue",
-    "ткани": "tissue",
-    "тканях": "tissue",
+    "почеч": ("renal", "kidney"),
+    "почек": ("renal", "kidney"),
+    "почк": ("kidney", "renal"),
+    "легк": ("pulmon", "lung"),
+    "легоч": ("pulmon", "lung"),
+    "мозг": ("cerebr", "brain"),
+    "мозгов": ("cerebr", "brain"),
     "клетк": "cell",
     "клеточ": "cell",
     "макрофаг": "macrophag",
@@ -184,7 +214,6 @@ BIOMED_COGNATES = {
     "онколог": "oncolog",
     "канцероген": "carcinogen",
     "опухол": "tumor",
-    "рак": "cancer",
     "карцином": "carcinom",
     "диабет": "diabet",
     "атеросклероз": "atheroscler",
@@ -200,7 +229,6 @@ BIOMED_COGNATES = {
     "гипертензи": "hypertens",
     # Молекулярная биология, биохимия, аналитика, генетика
     "экспресси": "express",
-    "ген": "gene",
     "геном": "genom",
     "генети": "genet",
     "хромосом": "chromosom",
@@ -240,3 +268,34 @@ BIOMED_COGNATES = {
     "препарат": "drug",
     "лекарств": "medicat",
 }
+
+
+def match_cognate_word(ru_word: str, title_words: set) -> bool:
+    """Проверить, соотносится ли русское слово с одним из англоязычных слов заголовка.
+
+    Правила против ложных срабатываний:
+      1. Короткие омонимичные термины (ген/рак/вен/ткань) — только по точным формам.
+      2. Словарные медицинские корни — только по началу слова (startswith) с обеих сторон.
+      3. Транслитерация международных терминов — только по 6+ символьному префиксу с начала слова.
+    """
+    fw = ru_word.lower()
+    if not fw or not title_words:
+        return False
+
+    for ru_forms, en_forms in EXACT_BIOMED_COGNATES:
+        if fw in ru_forms and (title_words & en_forms):
+            return True
+
+    for ru_stem, en_stems in BIOMED_COGNATES.items():
+        if fw.startswith(ru_stem):
+            targets = (en_stems,) if isinstance(en_stems, str) else en_stems
+            if any(tw.startswith(es) for tw in title_words for es in targets):
+                return True
+
+    fw_tr = transliterate_cyrillic(fw)
+    if len(fw_tr) >= 6:
+        prefix6 = fw_tr[:6]
+        if any(len(tw) >= 6 and tw.startswith(prefix6) for tw in title_words):
+            return True
+
+    return False

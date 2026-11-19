@@ -307,3 +307,92 @@ def test_latin_unrelated_still_returns_mismatch():
     fact = "Smith J. — Quantum dots in semiconductor physics"
     status, _ = classify_fact_match(fact, data)
     assert status == "MISMATCH"
+
+
+# --- негативные тесты против ложных CONFIRMED (ревью эвристик) ---
+
+def test_given_name_does_not_confirm_author():
+    """Личное имя (parts[0]) первого автора или соавтора не засчитывается как фамилия."""
+    data = oa_data(
+        title="Synthesis of organic catalysts",
+        authors=("Elena Sokolova", "Valeria Morozova"),
+    )
+    fact_first = "Елена Петрова — Исследование свойств полимеров"
+    status1, detail1 = classify_fact_match(fact_first, data)
+    assert status1 == "UNCERTAIN"
+    assert "found in fact" not in detail1
+
+    fact_co = "Валерия Иванова — Исследование свойств полимеров"
+    status2, detail2 = classify_fact_match(fact_co, data)
+    assert status2 == "UNCERTAIN"
+    assert "found in fact" not in detail2
+
+
+def test_surname_substring_inside_word_does_not_match():
+    """Фамилия матчится строго по границам токена, а не как подстрока внутри слова."""
+    data = oa_data(
+        title="Randomized clinical outcomes in surgery",
+        authors=("Wei Lin",),
+    )
+    # 'lin' содержится внутри транслита 'klinicheskie', но не является отдельным токеном
+    fact = "Иванов А.А. — Клинические аспекты наблюдения"
+    status, detail = classify_fact_match(fact, data)
+    assert status == "UNCERTAIN"
+    assert "author 'Lin' found" not in detail
+
+
+def test_same_author_unrelated_paper_ru_en_is_uncertain_not_confirmed():
+    """Нерелевантная статья того же автора/соавтора при языковом барьере → UNCERTAIN, не CONFIRMED."""
+    data_first = oa_data(
+        title="Quantum dots in semiconductor physics",
+        authors=("Nikita S. Popov",),
+    )
+    fact_first = "Попов Н.С. — Морфологическая оценка состояния печени"
+    status1, detail1 = classify_fact_match(fact_first, data_first)
+    assert status1 == "UNCERTAIN"
+    assert "author matched without title confirmation" in detail1
+    assert check_fact_match(fact_first, data_first)[0] is False
+
+    data_co = oa_data(
+        title="Quantum dots in semiconductor physics",
+        authors=("Valeria Schestakova", "S. A. Donskov"),
+    )
+    fact_co = "Донсков С.А. — Морфологическая оценка состояния печени"
+    status2, detail2 = classify_fact_match(fact_co, data_co)
+    assert status2 == "UNCERTAIN"
+    assert "author matched without title confirmation" in detail2
+
+
+def test_short_stems_do_not_false_match_inside_unrelated_words():
+    """Короткие корни ('ген', 'рак', 'вен') не срабатывают внутри посторонних слов."""
+    data = oa_data(
+        title="General study of cancer and vein degeneration with excellent outcomes",
+        authors=("John Smith",),
+    )
+    fact = "Иванов А.А. — Характеристика проведения рентгеновского патогена"
+    status, detail = classify_fact_match(fact, data)
+    assert status == "UNCERTAIN"
+    assert "title overlap only 0%" in detail
+
+
+def test_single_cognate_without_author_under_language_barrier_is_uncertain():
+    """Одиночное совпадение слова без автора при языковом барьере слишком слабо для CONFIRMED."""
+    data = oa_data(
+        title="Clinical outcomes in orthopedic surgery",
+        authors=("John Smith",),
+    )
+    fact = "Иванов А.А. — Клиническое наблюдение"
+    status, _ = classify_fact_match(fact, data)
+    assert status == "UNCERTAIN"
+
+
+def test_latin_surname_substring_does_not_match():
+    """И в латинице фамилия 'Smith' не должна матчиться внутри 'Smithson'."""
+    data = oa_data(
+        title="Completely unrelated astrophysics paper",
+        authors=("John Smith",),
+    )
+    fact = "Smithson A. — Polymer chemistry synthesis"
+    status, detail = classify_fact_match(fact, data)
+    assert status == "MISMATCH"
+    assert "NOT in fact" in detail
