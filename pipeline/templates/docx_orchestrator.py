@@ -252,6 +252,23 @@ def set_table_col_widths(table, widths_mm):
             col_idx += span
 
 
+_WORD_COM_EXPORT_SNIPPET = """
+import sys
+import win32com.client
+word = win32com.client.Dispatch("Word.Application")
+word.Visible = False
+word.DisplayAlerts = 0
+try:
+    d = word.Documents.Open(sys.argv[1], ReadOnly=True)
+    try:
+        d.SaveAs2(sys.argv[2], FileFormat=17)
+    finally:
+        d.Close(False)
+finally:
+    word.Quit()
+"""
+
+
 def check_pdf_page_breaks(docx_path, out_pdf_dir=None, orphan_chars=150, timeout=60):
     """Опциональный контроль границ страниц (Этап 8): экспорт .docx → PDF и анализ через pypdf.
 
@@ -261,13 +278,20 @@ def check_pdf_page_breaks(docx_path, out_pdf_dir=None, orphan_chars=150, timeout
       2. Диагностический вывод: печать числа символов, начала и конца текста каждой страницы
          для ручной оценки разрывов страниц и сохранённый PDF для визуального контроля.
 
-    Экспорт всегда выполняется в изолированный временный каталог (старый PDF из прошлых
-    запусков никогда не читается при ошибке конвертации). Исключения конвертеров, таймауты
-    и ошибки чтения PDF перехватываются.
+    Гарантии изоляции и обработки ошибок:
+      - Word COM и LibreOffice пишут в раздельные подкаталоги внутри TemporaryDirectory
+        (артефакты одного конвертера не мешают другому; старый PDF из прошлых запусков не читается).
+      - Оба конвертера запускаются в отдельном процессе с ограничением timeout (для Word COM
+        таймаут ограничивает ожидание Python-процесса; при жёстком зависании DCOM сам процесс
+        WINWORD.EXE на Windows может потребовать ручного завершения).
+      - Чтение и разбор через pypdf выполняются на временном PDF ДО публикации в out_pdf_dir;
+        повреждённый PDF не перезаписывает прежний результат.
+      - Ошибки сохранения (OSError при mkdir/copy2, напр. открытый в просмотрщике файл)
+        перехватываются и возвращают статус "save_failed" с уже собранными pages/warnings.
 
     Возвращает структурированный dict:
       {
-        "status": "ok" | "skipped" | "export_failed" | "parse_failed",
+        "status": "ok" | "skipped" | "export_failed" | "parse_failed" | "save_failed",
         "converter": "word_com" | "libreoffice" | None,
         "pdf_path": str | None,
         "pages": [{"page": int, "chars": int, "start": str, "end": str}, ...],
@@ -278,6 +302,7 @@ def check_pdf_page_breaks(docx_path, out_pdf_dir=None, orphan_chars=150, timeout
     from pathlib import Path
     import shutil as _shutil
     import subprocess
+    import sys as _sys
     import tempfile
 
     src = Path(docx_path).resolve()
@@ -295,12 +320,12 @@ def check_pdf_page_breaks(docx_path, out_pdf_dir=None, orphan_chars=150, timeout
     attempted = []
     errors = []
     used_converter = None
+    exported_pdf = None
 
-    with tempfile.TemporaryDirectory(prefix="docx_pdf_check_") as tmp_dir_str:
-        tmp_dir = Path(tmp_dir_str)
-        tmp_pdf = tmp_dir / (src.stem + ".pdf")
+    with tempfile.TemporaryDirectory(prefix="docx_pdf_check_") as tmp_root_str:
+        tmp_root = Path(tmp_root_str)
 
-        # 1. Пробуем MS Word COM (Windows + pywin32)
+        # 1. MS Word COM в отдельном процессе и изолированном подкаталоге (Windows + pywin32)
         try:
             import win32com.client as _win32com_client  # type: ignore
         except ImportError:
@@ -308,41 +333,44 @@ def check_pdf_page_breaks(docx_path, out_pdf_dir=None, orphan_chars=150, timeout
 
         if _win32com_client is not None:
             attempted.append("word_com")
-            word = None
+            word_dir = tmp_root / "word"
+            word_dir.mkdir()
+            word_pdf = word_dir / (src.stem + ".pdf")
             try:
-                word = _win32com_client.Dispatch("Word.Application")
-                word.Visible = False
-                word.DisplayAlerts = 0
-                d = word.Documents.Open(str(src), ReadOnly=True)
-                try:
-                    d.SaveAs2(str(tmp_pdf), FileFormat=17)  # wdFormatPDF
-                finally:
-                    d.Close(False)
-                if tmp_pdf.is_file() and tmp_pdf.stat().st_size > 0:
+                proc = subprocess.run(
+                    [_sys.executable, "-c", _WORD_COM_EXPORT_SNIPPET, str(src), str(word_pdf)],
+                    check=False, capture_output=True, text=True, timeout=timeout,
+                )
+                if proc.returncode == 0 and word_pdf.is_file() and word_pdf.stat().st_size > 0:
                     used_converter = "word_com"
+                    exported_pdf = word_pdf
                 else:
-                    errors.append("word_com: создан пустой или отсутствующий PDF")
-            except Exception as exc:
+                    detail_out = (proc.stderr or proc.stdout or "").strip()[:200]
+                    errors.append(
+                        f"word_com rc={proc.returncode}"
+                        + (f": {detail_out}" if detail_out else " (PDF не создан или пуст)")
+                    )
+            except subprocess.TimeoutExpired:
+                errors.append(f"word_com: timeout ({timeout}s)")
+            except OSError as exc:
                 errors.append(f"word_com: {type(exc).__name__}: {exc}")
-            finally:
-                if word is not None:
-                    try:
-                        word.Quit()
-                    except Exception:
-                        pass
 
-        # 2. Fallback: LibreOffice (soffice --headless) в отдельный временный каталог
+        # 2. Fallback: LibreOffice (soffice --headless) в свой изолированный подкаталог
         if used_converter is None:
             soffice = _shutil.which("soffice") or _shutil.which("libreoffice")
             if soffice:
                 attempted.append("libreoffice")
+                lo_dir = tmp_root / "libreoffice"
+                lo_dir.mkdir()
+                lo_pdf = lo_dir / (src.stem + ".pdf")
                 try:
                     proc = subprocess.run(
-                        [soffice, "--headless", "--convert-to", "pdf", "--outdir", str(tmp_dir), str(src)],
+                        [soffice, "--headless", "--convert-to", "pdf", "--outdir", str(lo_dir), str(src)],
                         check=False, capture_output=True, text=True, timeout=timeout,
                     )
-                    if proc.returncode == 0 and tmp_pdf.is_file() and tmp_pdf.stat().st_size > 0:
+                    if proc.returncode == 0 and lo_pdf.is_file() and lo_pdf.stat().st_size > 0:
                         used_converter = "libreoffice"
+                        exported_pdf = lo_pdf
                     else:
                         detail_out = (proc.stderr or proc.stdout or "").strip()[:200]
                         errors.append(
@@ -354,7 +382,7 @@ def check_pdf_page_breaks(docx_path, out_pdf_dir=None, orphan_chars=150, timeout
                 except OSError as exc:
                     errors.append(f"libreoffice: {type(exc).__name__}: {exc}")
 
-        if used_converter is None:
+        if used_converter is None or exported_pdf is None:
             if not attempted:
                 msg = "не найден Word COM (pywin32) или LibreOffice (soffice)"
                 print(f"SKIP PDF-проверка ({src.name}): {msg}")
@@ -369,42 +397,68 @@ def check_pdf_page_breaks(docx_path, out_pdf_dir=None, orphan_chars=150, timeout
                 "pages": [], "warnings": [], "error": msg,
             }
 
-        pdf_dir.mkdir(parents=True, exist_ok=True)
-        _shutil.copy2(tmp_pdf, final_pdf)
+        # 3. Анализируем временный PDF ДО публикации в out_pdf_dir
+        try:
+            import pypdf
+        except ImportError:
+            saved_path = None
+            try:
+                pdf_dir.mkdir(parents=True, exist_ok=True)
+                _shutil.copy2(exported_pdf, final_pdf)
+                saved_path = str(final_pdf)
+            except OSError as exc:
+                msg = f"pypdf не установлен; сохранить PDF в {final_pdf} также не удалось: {exc}"
+                print(f"SAVE_FAILED PDF-проверка ({src.name}): {msg}")
+                return {
+                    "status": "save_failed", "converter": used_converter, "pdf_path": None,
+                    "pages": [], "warnings": [], "error": msg,
+                }
+            msg = "pypdf не установлен (входит в профиль lite)"
+            print(f"SKIP PDF-анализ ({final_pdf.name}): {msg}")
+            return {
+                "status": "skipped", "converter": used_converter, "pdf_path": saved_path,
+                "pages": [], "warnings": [], "error": msg,
+            }
 
-    try:
-        import pypdf
-    except ImportError:
-        msg = "pypdf не установлен (входит в профиль lite)"
-        print(f"SKIP PDF-анализ ({final_pdf.name}): {msg}")
-        return {
-            "status": "skipped", "converter": used_converter, "pdf_path": str(final_pdf),
-            "pages": [], "warnings": [], "error": msg,
-        }
+        try:
+            reader = pypdf.PdfReader(str(exported_pdf))
+            pages_info = []
+            for idx, page in enumerate(reader.pages, start=1):
+                txt = re.sub(r'\s+', ' ', (page.extract_text() or '')).strip()
+                pages_info.append({"page": idx, "chars": len(txt), "start": txt[:80], "end": txt[-80:]})
+                print(f"  Стр.{idx} ({len(txt)} симв.): {txt[:60]!r} ... {txt[-60:]!r}")
+        except Exception as exc:
+            msg = f"{type(exc).__name__}: {exc}"
+            print(f"PARSE_FAILED PDF-анализ ({src.name}): {msg}")
+            return {
+                "status": "parse_failed", "converter": used_converter, "pdf_path": None,
+                "pages": [], "warnings": [], "error": msg,
+            }
 
-    try:
-        reader = pypdf.PdfReader(str(final_pdf))
-        pages_info = []
-        for idx, page in enumerate(reader.pages, start=1):
-            txt = re.sub(r'\s+', ' ', (page.extract_text() or '')).strip()
-            pages_info.append({"page": idx, "chars": len(txt), "start": txt[:80], "end": txt[-80:]})
-            print(f"  Стр.{idx} ({len(txt)} симв.): {txt[:60]!r} ... {txt[-60:]!r}")
-    except Exception as exc:
-        msg = f"{type(exc).__name__}: {exc}"
-        print(f"PARSE_FAILED PDF-анализ ({final_pdf.name}): {msg}")
-        return {
-            "status": "parse_failed", "converter": used_converter, "pdf_path": str(final_pdf),
-            "pages": [], "warnings": [], "error": msg,
-        }
+        warnings = []
+        if len(pages_info) > 1 and pages_info[-1]["chars"] < orphan_chars:
+            w = (
+                f"последняя страница {len(pages_info)} содержит лишь {pages_info[-1]['chars']} симв. "
+                f"(< {orphan_chars}) — возможна оторвавшаяся подпись или строка (проверить глазами)"
+            )
+            warnings.append(w)
+            print(f"  WARN: {w}")
 
-    warnings = []
-    if len(pages_info) > 1 and pages_info[-1]["chars"] < orphan_chars:
-        w = (
-            f"последняя страница {len(pages_info)} содержит лишь {pages_info[-1]['chars']} симв. "
-            f"(< {orphan_chars}) — возможна оторвавшаяся подпись или строка (проверить глазами)"
-        )
-        warnings.append(w)
-        print(f"  WARN: {w}")
+        # 4. Публикуем проверенный PDF в out_pdf_dir (с защитой от OSError/PermissionError)
+        try:
+            pdf_dir.mkdir(parents=True, exist_ok=True)
+            _shutil.copy2(exported_pdf, final_pdf)
+        except OSError as exc:
+            msg = f"Не удалось сохранить PDF в {final_pdf}: {exc}"
+            print(f"SAVE_FAILED PDF-проверка ({src.name}): {msg}")
+            return {
+                "status": "save_failed",
+                "converter": used_converter,
+                "pdf_path": None,
+                "pages": pages_info,
+                "warnings": warnings,
+                "error": msg,
+            }
 
     return {
         "status": "ok",

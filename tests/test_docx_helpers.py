@@ -158,11 +158,16 @@ def test_check_pdf_page_breaks_handles_libreoffice_timeout(rel_path, tmp_path):
 
 @pytest.mark.parametrize("rel_path", MODULE_PATHS)
 def test_check_pdf_page_breaks_handles_corrupted_pdf_parse_failed(rel_path, tmp_path):
-    """Повреждённый PDF после успешного экспорта возвращает parse_failed, не падая."""
+    """Повреждённый временный PDF возвращает parse_failed ДО публикации и не портит прежний final_pdf."""
     pytest.importorskip("pypdf")
     mod = _load_module("docx_mod_corrupt", rel_path)
     sample = tmp_path / "sample.docx"
     docx.Document().save(sample)
+
+    pdf_dir = tmp_path / "pdf"
+    pdf_dir.mkdir()
+    existing_pdf = pdf_dir / "sample.pdf"
+    existing_pdf.write_bytes(b"%PDF-1.4 PREVIOUS GOOD PDF")
 
     def _fake_soffice(cmd, **_kwargs):
         outdir = Path(cmd[cmd.index("--outdir") + 1])
@@ -172,12 +177,98 @@ def test_check_pdf_page_breaks_handles_corrupted_pdf_parse_failed(rel_path, tmp_
     with patch.dict("sys.modules", {"win32com": None, "win32com.client": None}), patch(
         "shutil.which", return_value="/usr/bin/soffice"
     ), patch("subprocess.run", side_effect=_fake_soffice):
-        res = mod.check_pdf_page_breaks(sample, out_pdf_dir=tmp_path / "pdf")
+        res = mod.check_pdf_page_breaks(sample, out_pdf_dir=pdf_dir)
 
     assert res["status"] == "parse_failed"
     assert res["converter"] == "libreoffice"
-    assert res["pdf_path"] is not None
+    assert res["pdf_path"] is None
     assert res["error"]
+    # Прежний PDF в out_pdf_dir не был перезаписан битым файлом
+    assert existing_pdf.read_bytes() == b"%PDF-1.4 PREVIOUS GOOD PDF"
+
+
+@pytest.mark.parametrize("rel_path", MODULE_PATHS)
+def test_check_pdf_page_breaks_handles_save_oserror(rel_path, tmp_path):
+    """OSError при сохранении PDF (напр., открыт в просмотрщике) возвращает save_failed с разобранными pages."""
+    pytest.importorskip("pypdf")
+    mod = _load_module("docx_mod_save_err", rel_path)
+    sample = tmp_path / "sample.docx"
+    docx.Document().save(sample)
+
+    def _fake_soffice(cmd, **_kwargs):
+        outdir = Path(cmd[cmd.index("--outdir") + 1])
+        (outdir / "sample.pdf").write_bytes(b"%PDF-1.4 fake bytes")
+        return MagicMock(returncode=0, stdout="", stderr="")
+
+    p1 = MagicMock()
+    p1.extract_text.return_value = "Страница 1 текста"
+    fake_reader = MagicMock(pages=[p1])
+
+    with patch.dict("sys.modules", {"win32com": None, "win32com.client": None}), patch(
+        "shutil.which", return_value="/usr/bin/soffice"
+    ), patch("subprocess.run", side_effect=_fake_soffice), patch(
+        "pypdf.PdfReader", return_value=fake_reader
+    ), patch("shutil.copy2", side_effect=PermissionError("PDF locked by Acrobat")):
+        res = mod.check_pdf_page_breaks(sample, out_pdf_dir=tmp_path / "pdf")
+
+    assert res["status"] == "save_failed"
+    assert res["converter"] == "libreoffice"
+    assert res["pdf_path"] is None
+    assert len(res["pages"]) == 1
+    assert "PDF locked by Acrobat" in res["error"]
+
+
+@pytest.mark.parametrize("rel_path", MODULE_PATHS)
+def test_check_pdf_page_breaks_isolates_converters_and_bounds_word_timeout(rel_path, tmp_path):
+    """Word COM и LibreOffice используют разные подкаталоги; timeout Word COM перехватывается с fallback на LibreOffice."""
+    pytest.importorskip("pypdf")
+    mod = _load_module("docx_mod_iso", rel_path)
+    sample = tmp_path / "sample.docx"
+    docx.Document().save(sample)
+
+    seen_dirs = {}
+    analyzed_paths = []
+
+    def _fake_run(cmd, **kwargs):
+        if "-c" in cmd:
+            # Вызов Word COM в отдельном процессе
+            word_pdf = Path(cmd[-1])
+            seen_dirs["word"] = word_pdf.parent
+            # Даже если Word успел создать битый файл и завис по таймауту
+            word_pdf.write_bytes(b"CORRUPT PARTIAL WORD OUTPUT")
+            raise subprocess.TimeoutExpired(cmd=cmd, timeout=kwargs.get("timeout", 5))
+        # Вызов LibreOffice
+        lo_dir = Path(cmd[cmd.index("--outdir") + 1])
+        seen_dirs["libreoffice"] = lo_dir
+        (lo_dir / "sample.pdf").write_bytes(b"%PDF-1.4 fresh libreoffice pdf")
+        return MagicMock(returncode=0, stdout="", stderr="")
+
+    p1 = MagicMock()
+    p1.extract_text.return_value = "Чистая страница от LibreOffice"
+    fake_reader = MagicMock(pages=[p1])
+
+    def _spy_reader(path_str):
+        analyzed_paths.append(Path(path_str))
+        return fake_reader
+
+    fake_win32 = MagicMock()
+    with patch.dict("sys.modules", {"win32com": fake_win32, "win32com.client": fake_win32}), patch(
+        "shutil.which", return_value="/usr/bin/soffice"
+    ), patch("subprocess.run", side_effect=_fake_run), patch(
+        "pypdf.PdfReader", side_effect=_spy_reader
+    ):
+        out_dir = tmp_path / "published_pdf"
+        res = mod.check_pdf_page_breaks(sample, out_pdf_dir=out_dir, timeout=5)
+
+    assert res["status"] == "ok"
+    assert res["converter"] == "libreoffice"
+    # Конвертеры использовали строго разные временные подкаталоги
+    assert seen_dirs["word"] != seen_dirs["libreoffice"]
+    # Разбирался именно временный PDF LibreOffice, а не конечный published_pdf/sample.pdf
+    assert len(analyzed_paths) == 1
+    assert analyzed_paths[0].parent == seen_dirs["libreoffice"]
+    assert analyzed_paths[0].parent != out_dir
+    assert Path(res["pdf_path"]).is_file()
 
 
 @pytest.mark.parametrize("rel_path", MODULE_PATHS)
