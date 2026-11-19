@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from common import (
     read_targets, validate_prefix, fix_windows_console, default_out_dir,
     STOP_WORDS, transliterate_cyrillic, has_cyrillic, has_word_token,
-    match_cognate_word,
+    find_cognate_target,
 )
 
 DOI_URL_RE = re.compile(r"doi\.org/(10\.[^/?#]+/[^/?#]+)")
@@ -127,14 +127,14 @@ def classify_fact_match(fact, data):
 
     Возвращает (status: str, detail: str), где status — один из:
       - "CONFIRMED":
-          * в одном алфавите (EN↔EN): совпал первый автор (целым токеном) и/или заголовок;
-          * при языковом барьере (RU fact vs EN title): требуется сильное подтверждение —
-            либо первый автор (фамилия токеном) + >=1 совпавшее слово заголовка,
-            либо соавтор (фамилия токеном) + >=2 совпавших слова заголовка,
-            либо >=2 совпавших слова заголовка при overlap >= 30%.
-            Одиночное совпадение автора/соавтора без темы или 1 случайный корень НЕ подтверждают.
-      - "UNCERTAIN": языковой барьер или слабое совпадение (требуется ручная сверка
-                     или лёгкий фетчер, а не ложный CONFIRMED и не ложный MISMATCH).
+          * в одном алфавите (EN↔EN): сильное совпадение заголовка, либо автор (целым токеном)
+            + >=1 совпавшее слово заголовка; один автор без темы НЕ подтверждает статью;
+          * при языковом барьере (RU fact vs EN title): сильное совпадение по независимым
+            англоязычным словам заголовка (>=2 разных целевых слова и overlap >= 30%),
+            либо первый автор (фамилия токеном) + >=1 целевое слово,
+            либо соавтор (фамилия токеном) + >=2 разных целевых слова.
+      - "UNCERTAIN": языковой барьер, один автор без подтверждения темы или слабое совпадение
+                     (требуется ручная сверка или лёгкий фетчер, а не ложный CONFIRMED/MISMATCH).
       - "MISMATCH":  ни автор, ни заголовок не совпали в одном алфавите.
 
     Эмпирическое обоснование:
@@ -220,35 +220,40 @@ def classify_fact_match(fact, data):
     title_words = {w.strip(".,;:()[]«»\"'") for w in title.split()}
     title_words = {w for w in title_words if w}
 
-    matches = set(fact_words & title_words)
-    # При языковом барьере (RU fact vs EN title) сверяем через общий строгий матчер когнатов
+    # Независимые совпадения считаем по уникальным целевым словам из title_words,
+    # чтобы несколько русских словоформ (напр. «сердечная» и «сердца») на одном EN-слове
+    # ('cardiac') не накручивали счётчик совпадений.
+    direct_matches = set(fact_words & title_words)
+    matched_targets = set(direct_matches)
     if lang_barrier:
-        for fw in fact_words - matches:
-            if match_cognate_word(fw, title_words):
-                matches.add(fw)
+        for fw in fact_words - direct_matches:
+            target_tw = find_cognate_target(fw, title_words)
+            if target_tw is not None:
+                matched_targets.add(target_tw)
 
-    title_any_match = bool(matches)
+    match_count = len(matched_targets)
+    title_any_match = match_count >= 1
     title_strong_match = False
 
     if len(fact_words) >= 3:
-        overlap = len(matches) / len(fact_words)
+        overlap = match_count / len(fact_words)
         if lang_barrier:
-            title_strong_match = len(matches) >= 2 and overlap >= 0.3
+            title_strong_match = match_count >= 2 and overlap >= 0.3
         else:
             title_strong_match = overlap >= 0.3
         if title_strong_match:
-            checks_passed.append(f"title overlap {overlap:.0%} ({len(matches)}/{len(fact_words)} words)")
+            checks_passed.append(f"title overlap {overlap:.0%} ({match_count}/{len(fact_words)} words)")
         else:
-            checks_failed.append(f"title overlap only {overlap:.0%} ({len(matches)}/{len(fact_words)} words)")
+            checks_failed.append(f"title overlap only {overlap:.0%} ({match_count}/{len(fact_words)} words)")
     elif len(fact_words) >= 1:
         if lang_barrier:
-            title_strong_match = len(matches) >= 2
+            title_strong_match = match_count >= 2
         else:
-            title_strong_match = bool(matches)
+            title_strong_match = match_count >= 1
         if title_strong_match:
-            checks_passed.append(f"title words match: {matches}")
-        elif matches:
-            checks_failed.append(f"weak title match under language barrier ({len(matches)} word: {matches})")
+            checks_passed.append(f"title words match: {matched_targets}")
+        elif matched_targets:
+            checks_failed.append(f"weak title match under language barrier ({match_count} word: {matched_targets})")
         else:
             checks_failed.append(f"no title word overlap (fact words: {fact_words})")
 
@@ -260,7 +265,7 @@ def classify_fact_match(fact, data):
             return "CONFIRMED", detail
         if first_author_matched and title_any_match:
             return "CONFIRMED", detail
-        if coauthor_matched and len(matches) >= 2:
+        if coauthor_matched and match_count >= 2:
             return "CONFIRMED", detail
         if first_author_matched or coauthor_matched:
             return "UNCERTAIN", f"weak cross-language match (author matched without title confirmation); {detail}"
@@ -268,12 +273,12 @@ def classify_fact_match(fact, data):
             return "UNCERTAIN", f"weak cross-language match (insufficient title overlap); {detail}"
         return "UNCERTAIN", f"language barrier (Cyrillic fact vs English metadata); {detail}"
 
-    if first_author_matched or title_strong_match:
+    if title_strong_match:
         return "CONFIRMED", detail
-    if coauthor_matched and title_any_match:
+    if (first_author_matched or coauthor_matched) and title_any_match:
         return "CONFIRMED", detail
-    if coauthor_matched:
-        return "UNCERTAIN", f"co-author only match without title overlap; {detail}"
+    if first_author_matched or coauthor_matched:
+        return "UNCERTAIN", f"author-only match without title confirmation; {detail}"
     return "MISMATCH", detail
 
 

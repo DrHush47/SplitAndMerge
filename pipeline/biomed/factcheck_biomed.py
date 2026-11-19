@@ -27,7 +27,7 @@ if str(_REPO_ROOT) not in sys.path:
 from pipeline.common import (
     read_targets, validate_prefix, fix_windows_console, default_out_dir,
     STOP_WORDS, CYRILLIC_TO_LATIN, BIOMED_COGNATES,
-    transliterate_cyrillic, has_cyrillic, has_word_token, match_cognate_word,
+    transliterate_cyrillic, has_cyrillic, has_word_token, find_cognate_target,
 )
 
 PMID_URL_RE = re.compile(r"(?:pubmed\.ncbi\.nlm\.nih\.gov|ncbi\.nlm\.nih\.gov/pubmed)/(\d+)", re.IGNORECASE)
@@ -258,17 +258,19 @@ def check_biomed_fact_match(fact, data):
     }
     title_words = {w for w in title_words if len(w) >= 4 and w not in STOP_WORDS}
 
-    # 3. Сопоставление слов названия (прямое + общий строгий матчер когнатов из pipeline.common)
-    matched_fact_words = set()
+    # 3. Сопоставление слов названия (считаем уникальные целевые слова заголовка,
+    # чтобы несколько русских словоформ на одном EN-термине считались одним совпадением)
+    matched_targets = set()
     for fw in fact_words:
         if fw in title_words or has_word_token(fw, title):
-            matched_fact_words.add(fw)
+            matched_targets.add(fw)
             continue
-        if match_cognate_word(fw, title_words):
-            matched_fact_words.add(fw)
+        target_tw = find_cognate_target(fw, title_words)
+        if target_tw is not None:
+            matched_targets.add(target_tw)
 
-    overlap = len(matched_fact_words) / len(fact_words) if fact_words else 0.0
-    matches_count = len(matched_fact_words)
+    overlap = len(matched_targets) / len(fact_words) if fact_words else 0.0
+    matches_count = len(matched_targets)
 
     if len(fact_words) >= 3:
         if overlap >= 0.25:
@@ -277,15 +279,15 @@ def check_biomed_fact_match(fact, data):
             checks_failed.append(f"title overlap only {overlap:.0%} ({matches_count}/{len(fact_words)} words)")
     elif len(fact_words) >= 1:
         if matches_count >= 1:
-            checks_passed.append(f"title words match: {matched_fact_words}")
+            checks_passed.append(f"title words match: {matched_targets}")
         else:
             checks_failed.append("no title word overlap")
 
     detail = "; ".join(checks_passed + checks_failed)
 
     # 4. Решение: Evidence-First классификация вердикта
-    # Сценарий A: Высокое совпадение названия (>= 25% при >= 3 словах, или >= 2 слов)
-    if (len(fact_words) >= 3 and overlap >= 0.25) or matches_count >= 2:
+    # Сценарий A: Высокое совпадение названия (>= 25% при >= 3 словах и >= 2 независимых EN-слов при кириллице, или >= 2 слов)
+    if (len(fact_words) >= 3 and overlap >= 0.25 and (not is_cyrillic or matches_count >= 2)) or matches_count >= 2:
         return "CONFIRMED", detail
 
     # Сценарий B: Одно совпавшее слово при коротком названии (<= 4 слов)

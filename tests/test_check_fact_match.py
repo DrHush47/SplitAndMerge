@@ -1,14 +1,14 @@
-"""Тесты check_fact_match (factcheck_openalex.py, Ур.0.5).
+"""Тесты classify_fact_match / check_fact_match (factcheck_openalex.py, Ур.0.5).
 
-Кейсы построены по реальному коду функции (строки ~104–181):
-- читаются ключи data["title"] и data["authorships"][0]["author"]["display_name"];
-- проверка 1 — фамилия первого автора (str или кортеж из двух вариантов)
-  подстрокой (case-insensitive) в fact;
+Контракт функции:
+- читаются ключи data["title"] и data["authorships"][...]["author"]["display_name"];
+- проверка 1 — фамилия автора проверяется по границам токенов (case-insensitive);
 - проверка 2 — пересечение значимых слов fact (после разделителя) с title:
   стоп-слова и слова <4 символов исключаются; при 3+ словах порог 30%,
-  при 1–2 словах — любое совпадение;
+  при 1–2 словах в одном алфавите — любое совпадение;
 - разделители fact проверяются в порядке [" — ", ". ", " —", "— "];
-- is_match = есть хотя бы один пройденный чек.
+- CONFIRMED требует подтверждения темы (сильное совпадение заголовка, либо автор + совпадение темы);
+  совпадение одного только автора без совпадения темы даёт UNCERTAIN (не CONFIRMED и не MISMATCH).
 """
 
 import pytest
@@ -28,62 +28,62 @@ def oa_data(title="", authors=()):
     }
 
 
-# (fact, title, authors, ожидаемый is_match, подстроки detail)
+# (fact, title, authors, ожидаемый status, подстроки detail)
 CASES = [
-    # --- оба чека прошли ---
+    # --- оба чека прошли → CONFIRMED ---
     (
         "Topol E.J. — High-performance medicine: the convergence of human and artificial intelligence",
         "High-performance medicine: the convergence of human and artificial intelligence",
         ("Eric Topol",),
-        True,
+        "CONFIRMED",
         ["author 'Topol' found in fact", "title overlap"],
     ),
-    # --- прошёл только чек автора ---
+    # --- совпал только автор без темы → UNCERTAIN (не CONFIRMED и не MISMATCH) ---
     (
         "Smith J. — Some totally different article about widgets and gears and cogs",
         "completely unrelated topic words",
         ("John Smith",),
-        True,
-        ["author 'Smith' found in fact", "title overlap only"],
+        "UNCERTAIN",
+        ["author-only match without title confirmation", "author 'Smith' found in fact", "title overlap only"],
     ),
-    # --- прошёл только чек заголовка ---
+    # --- прошёл только чек заголовка → CONFIRMED ---
     (
         "The paper about neural networks and deep learning systems",
         "neural networks and deep learning systems",
         ("Zhang Wei",),
-        True,
+        "CONFIRMED",
         ["authors ['Wei', 'Zhang'] NOT in fact", "title overlap"],
     ),
-    # --- ни один чек не прошёл (MISMATCH) ---
+    # --- ни один чек не прошёл → MISMATCH ---
     (
         "Unrelated paper about quantum computing bits",
         "completely different subject matter",
         ("Maria Garcia",),
-        False,
+        "MISMATCH",
         ["authors ['Garcia', 'Maria'] NOT in fact", "title overlap only"],
     ),
-    # --- фамилия-строка (имя из одного слова) ---
+    # --- фамилия-строка (имя из одного слова) + тема → CONFIRMED ---
     (
         "Topol E.J. — Quantum computing advances",
-        "completely different subject matter",
+        "quantum computing advances in medicine",
         ("Topol",),
-        True,
-        ["author 'Topol' found in fact"],
+        "CONFIRMED",
+        ["author 'Topol' found in fact", "title overlap"],
     ),
-    # --- кортеж фамилий: западный вариант ---
+    # --- кортеж фамилий: западный вариант (без темы → UNCERTAIN, фамилия найдена) ---
     (
         "Zhang W. — Something unrelated here",
         "completely different subject matter",
         ("Wei Zhang",),
-        True,
+        "UNCERTAIN",
         ["author 'Zhang' found in fact"],
     ),
-    # --- кортеж фамилий: восточный вариант ---
+    # --- кортеж фамилий: восточный вариант (без темы → UNCERTAIN, фамилия найдена) ---
     (
         "Wei Z. — Something unrelated here",
         "completely different subject matter",
         ("Wei Zhang",),
-        True,
+        "UNCERTAIN",
         ["author 'Wei' found in fact"],
     ),
     # --- разделитель ". " ---
@@ -91,7 +91,7 @@ CASES = [
         "Smith J. Article title words here",
         "article title words here",
         ("John Smith",),
-        True,
+        "CONFIRMED",
         ["title overlap"],
     ),
     # --- разделитель " —" (пробел + тире) ---
@@ -99,7 +99,7 @@ CASES = [
         "Smith J —Title words here",
         "title words here",
         ("John Smith",),
-        True,
+        "CONFIRMED",
         ["title overlap"],
     ),
     # --- разделитель "— " (тире + пробел) ---
@@ -107,23 +107,23 @@ CASES = [
         "Smith J— Title words here",
         "title words here",
         ("John Smith",),
-        True,
+        "CONFIRMED",
         ["title overlap"],
     ),
-    # --- только стоп-слова в заголовочной части → fact_words пусто ---
+    # --- только стоп-слова в заголовочной части → fact_words пусто, только автор → UNCERTAIN ---
     (
         "Smith J. To be or not to be",
         "unrelated totally",
         ("John Smith",),
-        True,
+        "UNCERTAIN",
         ["author 'Smith' found in fact"],
     ),
-    # --- слова короче 4 символов исключаются ---
+    # --- слова короче 4 символов исключаются → только автор → UNCERTAIN ---
     (
         "Smith J. A cat and a dog",
         "unrelated words",
         ("John Smith",),
-        True,
+        "UNCERTAIN",
         ["author 'Smith' found in fact"],
     ),
     # --- порог 30% при 3+ словах: совпадение засчитано (75%) ---
@@ -131,39 +131,39 @@ CASES = [
         "Doe J. Alpha beta gamma delta",
         "alpha beta gamma epsilon",
         ("John Doe",),
-        True,
+        "CONFIRMED",
         ["title overlap 75%"],
     ),
-    # --- порог 30% при 3+ словах: ниже порога (25%) ---
+    # --- автор + 1 слово заголовка (25% < 30%, но тема частично подтверждена вместе с автором) → CONFIRMED ---
     (
         "Doe J. Alpha beta gamma delta",
         "alpha unrelated words here",
         ("John Doe",),
-        True,
-        ["title overlap only 25%"],
+        "CONFIRMED",
+        ["author 'Doe' found in fact", "title overlap only 25%"],
     ),
     # --- случай 1–2 слов: совпадение есть ---
     (
         "Doe J. Quantum birds",
         "quantum birds",
         ("John Doe",),
-        True,
+        "CONFIRMED",
         ["title words match"],
     ),
-    # --- случай 1–2 слов: совпадения нет ---
+    # --- случай 1–2 слов: совпадения нет (один автор → UNCERTAIN) ---
     (
         "Doe J. Quantum birds",
         "unrelated topics",
         ("John Doe",),
-        True,
-        ["no title word overlap"],
+        "UNCERTAIN",
+        ["author 'Doe' found in fact", "no title word overlap"],
     ),
-    # --- пустой title: чек заголовка не может пройти ---
+    # --- пустой title: чек заголовка не может пройти (один автор → UNCERTAIN) ---
     (
         "Smith J. — Quantum computing advances",
         "",
         ("John Smith",),
-        True,
+        "UNCERTAIN",
         ["author 'Smith' found in fact"],
     ),
     # --- пустые авторы: чек автора пропускается, работает только заголовок ---
@@ -171,31 +171,31 @@ CASES = [
         "Some fact about quantum computing advances",
         "quantum computing advances",
         (),
-        True,
+        "CONFIRMED",
         ["title overlap"],
     ),
-    # --- пустой fact: оба чека не проходят ---
+    # --- пустой fact: оба чека не проходят → MISMATCH ---
     (
         "",
         "quantum computing advances",
         ("John Smith",),
-        False,
+        "MISMATCH",
         ["authors ['Smith', 'John'] NOT in fact"],
     ),
-    # --- регистр: фамилия в fact в другом регистре ---
+    # --- регистр: фамилия в fact в другом регистре + тема → CONFIRMED ---
     (
         "TOPOL E.J. — Quantum computing advances",
-        "completely different subject matter",
+        "quantum computing advances",
         ("Eric Topol",),
-        True,
-        ["author 'Topol' found in fact"],
+        "CONFIRMED",
+        ["author 'Topol' found in fact", "title overlap"],
     ),
     # --- регрессия: двоеточие в title нормализуется ---
     (
         "Doe J. High performance medicine",
         "High performance medicine:",
         ("Jane Doe",),
-        True,
+        "CONFIRMED",
         ["title overlap 100%"],
     ),
     # --- регрессия: пунктуационный мусор title не ломает overlap ---
@@ -203,7 +203,7 @@ CASES = [
         "Doe J. Alpha beta gamma",
         "!!! alpha, beta; gamma...",
         ("Jane Doe",),
-        True,
+        "CONFIRMED",
         ["title overlap 100%"],
     ),
     # --- регрессия: пустые токены после strip игнорируются ---
@@ -211,16 +211,19 @@ CASES = [
         "Doe J. Alpha beta gamma",
         "... alpha ... beta ... gamma ...",
         ("Jane Doe",),
-        True,
+        "CONFIRMED",
         ["title overlap 100%"],
     ),
 ]
 
 
-@pytest.mark.parametrize("fact,title,authors,expected,detail_parts", CASES)
-def test_check_fact_match(fact, title, authors, expected, detail_parts):
-    is_match, detail = check_fact_match(fact, oa_data(title=title, authors=authors))
-    assert is_match is expected
+@pytest.mark.parametrize("fact,title,authors,expected_status,detail_parts", CASES)
+def test_check_fact_match(fact, title, authors, expected_status, detail_parts):
+    data = oa_data(title=title, authors=authors)
+    status, detail = classify_fact_match(fact, data)
+    assert status == expected_status
+    is_match, _ = check_fact_match(fact, data)
+    assert is_match is (expected_status == "CONFIRMED")
     for part in detail_parts:
         assert part in detail, f"detail должен содержать {part!r}, получено: {detail!r}"
 
@@ -396,3 +399,40 @@ def test_latin_surname_substring_does_not_match():
     status, detail = classify_fact_match(fact, data)
     assert status == "MISMATCH"
     assert "NOT in fact" in detail
+
+
+def test_latin_same_author_different_paper_returns_uncertain():
+    """EN↔EN: тот же автор, но другая статья (0% совпадения темы) → UNCERTAIN, не CONFIRMED."""
+    data = oa_data(
+        title="Deep learning for pediatric chest radiographs",
+        authors=("Eric Topol",),
+    )
+    fact = "Topol E.J. — Quantum dots in semiconductor physics"
+    status, detail = classify_fact_match(fact, data)
+    assert status == "UNCERTAIN"
+    assert "author-only match without title confirmation" in detail
+    assert check_fact_match(fact, data)[0] is False
+
+
+def test_multiple_russian_words_same_english_concept_not_double_counted():
+    """Две русские словоформы («сердечная» и «сердца») на одном EN-слове ('cardiac') = 1 совпадение."""
+    from pipeline.biomed.factcheck_biomed import check_biomed_fact_match
+
+    data_oa = oa_data(
+        title="Cardiac rehabilitation outcomes in elderly volunteers",
+        authors=("John Smith",),
+    )
+    fact = "Иванов А.А. — Сердечная недостаточность сердца"
+    status_oa, detail_oa = classify_fact_match(fact, data_oa)
+    assert status_oa == "UNCERTAIN"
+    assert "(1/3 words)" in detail_oa
+
+    # То же правило в BioMed (Ур.0.7): одно EN-слово 'cardiac' не даёт ложный CONFIRMED
+    data_bm = {
+        "title": "Cardiac rehabilitation outcomes in elderly volunteers",
+        "first_author": "Smith J",
+        "authors": ["Smith J"],
+    }
+    status_bm, detail_bm = check_biomed_fact_match(fact, data_bm)
+    assert status_bm == "UNCERTAIN"
+    assert "(1/3 words)" in detail_bm

@@ -182,7 +182,7 @@ BIOMED_COGNATES = {
     "кардио": "cardio",
     "кардиолог": "cardiolog",
     "сердеч": ("cardiac", "heart"),
-    "сердц": ("heart", "cardiac"),
+    "сердц": ("cardiac", "heart"),
     "сосуд": "vascul",
     "артери": "arter",
     "венозн": "venous",
@@ -193,7 +193,7 @@ BIOMED_COGNATES = {
     "печен": "hepat",
     "почеч": ("renal", "kidney"),
     "почек": ("renal", "kidney"),
-    "почк": ("kidney", "renal"),
+    "почк": ("renal", "kidney"),
     "легк": ("pulmon", "lung"),
     "легоч": ("pulmon", "lung"),
     "мозг": ("cerebr", "brain"),
@@ -270,8 +270,12 @@ BIOMED_COGNATES = {
 }
 
 
-def match_cognate_word(ru_word: str, title_words: set) -> bool:
-    """Проверить, соотносится ли русское слово с одним из англоязычных слов заголовка.
+def find_cognate_target(ru_word: str, title_words: set):
+    """Найти соответствующее англоязычное слово заголовка для русского слова (или None).
+
+    Возврат конкретного целевого слова из title_words позволяет подсчитывать
+    независимые совпадения понятий (чтобы, напр., «сердечная» и «сердца» не считались
+    двумя разными совпадениями на одном англоязычном слове 'cardiac').
 
     Правила против ложных срабатываний:
       1. Короткие омонимичные термины (ген/рак/вен/ткань) — только по точным формам.
@@ -280,22 +284,34 @@ def match_cognate_word(ru_word: str, title_words: set) -> bool:
     """
     fw = ru_word.lower()
     if not fw or not title_words:
-        return False
+        return None
+
+    sorted_title = sorted(title_words)
 
     for ru_forms, en_forms in EXACT_BIOMED_COGNATES:
-        if fw in ru_forms and (title_words & en_forms):
-            return True
+        if fw in ru_forms:
+            hits = title_words & en_forms
+            if hits:
+                return min(hits)
 
     for ru_stem, en_stems in BIOMED_COGNATES.items():
         if fw.startswith(ru_stem):
             targets = (en_stems,) if isinstance(en_stems, str) else en_stems
-            if any(tw.startswith(es) for tw in title_words for es in targets):
-                return True
+            for es in targets:
+                for tw in sorted_title:
+                    if tw.startswith(es):
+                        return tw
 
     fw_tr = transliterate_cyrillic(fw)
     if len(fw_tr) >= 6:
         prefix6 = fw_tr[:6]
-        if any(len(tw) >= 6 and tw.startswith(prefix6) for tw in title_words):
-            return True
+        for tw in sorted_title:
+            if len(tw) >= 6 and tw.startswith(prefix6):
+                return tw
 
-    return False
+    return None
+
+
+def match_cognate_word(ru_word: str, title_words: set) -> bool:
+    """Булева обёртка над find_cognate_target()."""
+    return find_cognate_target(ru_word, title_words) is not None
