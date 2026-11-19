@@ -42,8 +42,11 @@ python -m venv .venv
 .venv/Scripts/python.exe pipeline/lite/fetch_lite.py --targets pipeline/targets.json --prefix lite --timeout 15        # Лёгкий HTTP/meta/PDF-фетчер (без браузеров)
 ```
 
-> Для Linux/Mac заменить `Scripts` на `bin` (`.venv/bin/sam`, `.venv/bin/python`).
-> После активации окружения (`.venv/Scripts/Activate.ps1` / `source .venv/bin/activate`) доступна короткая команда `sam`; без editable-установки используйте `.venv/Scripts/python.exe pipeline/sam.py` (с `--out-dir` для другого каталога).
+> **Пути для Windows vs Linux/macOS:**
+> - Windows: `.venv/Scripts/sam.exe` и `.venv/Scripts/python.exe`
+> - Linux/macOS (без `.exe`): `.venv/bin/sam` и `.venv/bin/python`
+>
+> После активации окружения (`.venv/Scripts/Activate.ps1` / `source .venv/bin/activate`) доступна короткая команда `sam`; при установке через `requirements-lite.txt` (без `-e`) используйте `.venv/Scripts/python.exe pipeline/sam.py` (Linux/macOS: `.venv/bin/python pipeline/sam.py`).
 
 Коды выхода `sam.py`: `0` — нет REFUTED; `1` — есть REFUTED; `2` — ошибка конфигурации. Правила эскалации и handoff-уровни — только в [`pipeline/docs/cascade.md`](pipeline/docs/cascade.md). Для работы фазы 3 (Scrapling) всегда включайте уровень 2 в `--levels` (иначе фазе 3 не из чего эскалироваться).
 
