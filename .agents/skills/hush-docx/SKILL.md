@@ -2,7 +2,7 @@
 name: hush-docx
 description: "Use for ALL routine mechanical edits to existing .docx: formatting, heading insertion, table cell replacements, reference renumbering, text insertion, italic/bold, trailing cleanup. Uses python-docx exclusively — one script, all edits, one shot. Do NOT use for creating new docs, tracked changes/XML, or .doc conversion."
 ---
-# FreeBuffdocx — Routine docx Edits via python-docx
+# HushDocx — Routine docx Edits via python-docx
 
 ## Overview
 
