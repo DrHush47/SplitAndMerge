@@ -37,13 +37,13 @@ python -m venv .venv
 
 # 3. Заполнить pipeline/targets.json ссылками для проверки
 # 4. Запустить лёгкую верификацию (артефакты пишутся в workspace/)
-sam --targets pipeline/targets.json --levels 0.5                         # Ур.0.5 OpenAlex (DOI, с поддержкой RU↔EN)
+.venv/Scripts/sam.exe --targets pipeline/targets.json --levels 0.5       # Ур.0.5 OpenAlex (DOI, с поддержкой RU↔EN)
 .venv/Scripts/python.exe pipeline/biomed/factcheck_biomed.py --targets pipeline/targets.json --prefix bm --timeout 15  # Ур.0.7 BioMed (PMID/PMC)
 .venv/Scripts/python.exe pipeline/lite/fetch_lite.py --targets pipeline/targets.json --prefix lite --timeout 15        # Лёгкий HTTP/meta/PDF-фетчер (без браузеров)
 ```
 
-> Для Linux/Mac заменить `Scripts` на `bin`, а `python` на `python3` в путях к Python.
-> Без установки пакета `sam` заменяется на `.venv/Scripts/python.exe pipeline/sam.py` (с `--out-dir` для другого каталога).
+> Для Linux/Mac заменить `Scripts` на `bin` (`.venv/bin/sam`, `.venv/bin/python`).
+> После активации окружения (`.venv/Scripts/Activate.ps1` / `source .venv/bin/activate`) доступна короткая команда `sam`; без editable-установки используйте `.venv/Scripts/python.exe pipeline/sam.py` (с `--out-dir` для другого каталога).
 
 Коды выхода `sam.py`: `0` — нет REFUTED; `1` — есть REFUTED; `2` — ошибка конфигурации. Правила эскалации и handoff-уровни — только в [`pipeline/docs/cascade.md`](pipeline/docs/cascade.md). Для работы фазы 3 (Scrapling) всегда включайте уровень 2 в `--levels` (иначе фазе 3 не из чего эскалироваться).
 
@@ -64,7 +64,7 @@ sam --targets pipeline/targets.json --levels 0.5                         # Ур.
 # .venv/Scripts/python.exe -m pip install -r pipeline/requirements.txt
 
 # Авто-каскад с браузерными уровнями 2–3 (после установки `[web]`):
-sam --targets pipeline/targets.json --out-dir workspace --levels 0.5,2,3
+.venv/Scripts/sam.exe --targets pipeline/targets.json --out-dir workspace --levels 0.5,2,3
 ```
 
 ### Лёгкий профиль и ручной трек (Ур.0.5 / Ур.0.7 + Ур.1 → Ур.5)
