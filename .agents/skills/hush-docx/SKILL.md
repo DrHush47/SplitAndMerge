@@ -21,8 +21,8 @@ description: "Use for ALL routine mechanical edits to existing .docx: formatting
 | Set italic/bold | `run.italic = True` / `run.bold = True` |
 | Replace inline subtitle with proper heading | Check if separate heading exists → if yes WARN; if no, convert paragraph + `addnext()` (R11) |
 | Remove trailing empty paragraphs | Find last non-empty → delete everything after `keep_max` |
-| Table pagination & fixed column widths | `set_row_cant_split()`, `set_row_header()`, `set_table_col_widths()` (in `scripts/helpers.py`) |
-| Optional Stage 8 PDF page-break check | `check_pdf_page_breaks()` — Word COM / LibreOffice + `pypdf` catches orphan signatures & split headers |
+| Table pagination & fixed column widths | `set_row_cant_split()`, `set_row_header()`, `set_table_col_widths()` (fixed grid + `gridSpan` width sum, in `scripts/helpers.py`) |
+| Optional Stage 8 PDF page-break check | `check_pdf_page_breaks()` — isolated PDF export + `pypdf`: auto-warns on low-text last page (`<150` chars) & prints page boundaries for manual review (`ok`/`skipped`/`export_failed`/`parse_failed`) |
 
 ## Mandatory Rules
 

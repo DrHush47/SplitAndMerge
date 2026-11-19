@@ -169,9 +169,60 @@ def set_row_header(row):
 
 
 def set_table_col_widths(table, widths_mm):
-    """Зафиксировать ширины столбцов таблицы (w:tblLayout=fixed + w:tblGrid, с учётом gridSpan)."""
+    """Зафиксировать ширины столбцов таблицы (w:tblLayout=fixed + w:tblGrid + сумма gridSpan для объединённых ячеек).
+
+    Проверяет положительность ширин и соответствие len(widths_mm) логическому числу столбцов каждой строки.
+    Для горизонтально объединённых ячеек (w:gridSpan > 1) выставляет w:tcW равным сумме покрываемых колонок.
+    """
+    if (
+        not widths_mm
+        or any(not isinstance(w, (int, float)) or isinstance(w, bool) or w <= 0 for w in widths_mm)
+    ):
+        raise ValueError(f"widths_mm должен быть непустой последовательностью чисел > 0, получено: {widths_mm!r}")
+
+    expected_cols = len(widths_mm)
+    dxa_widths = [round(w * 56.6929) for w in widths_mm]
+    trs = table._tbl.findall(qn('w:tr'))
+
+    row_meta = []
+    for row_idx, tr in enumerate(trs):
+        trPr = tr.find(qn('w:trPr'))
+        grid_before = 0
+        grid_after = 0
+        if trPr is not None:
+            gb = trPr.find(qn('w:gridBefore'))
+            if gb is not None:
+                grid_before = int(gb.get(qn('w:val'), '0'))
+            ga = trPr.find(qn('w:gridAfter'))
+            if ga is not None:
+                grid_after = int(ga.get(qn('w:val'), '0'))
+        tcs = tr.findall(qn('w:tc'))
+        spans = []
+        for tc in tcs:
+            tcPr = tc.find(qn('w:tcPr'))
+            gs = tcPr.find(qn('w:gridSpan')) if tcPr is not None else None
+            spans.append(int(gs.get(qn('w:val'), '1')) if gs is not None else 1)
+        row_cols = grid_before + sum(spans) + grid_after
+        if row_cols != expected_cols:
+            raise ValueError(
+                f"Строка {row_idx} содержит {row_cols} логических столбцов, а len(widths_mm)={expected_cols}"
+            )
+        row_meta.append((tcs, spans, grid_before))
+
     table.autofit = False
     tblPr = table._tbl.tblPr
+
+    tblW = tblPr.find(qn('w:tblW'))
+    if tblW is None:
+        tblW = OxmlElement('w:tblW')
+        tblStyle = tblPr.find(qn('w:tblStyle'))
+        if tblStyle is not None:
+            tblStyle.addnext(tblW)
+        else:
+            tblPr.insert(0, tblW)
+    tblW.set(qn('w:w'), str(sum(dxa_widths)))
+    tblW.set(qn('w:type'), 'dxa')
+
     old_layout = tblPr.find(qn('w:tblLayout'))
     if old_layout is not None:
         tblPr.remove(old_layout)
@@ -181,86 +232,188 @@ def set_table_col_widths(table, widths_mm):
     if old_grid is not None:
         table._tbl.remove(old_grid)
     new_grid = OxmlElement('w:tblGrid')
-    for w in widths_mm:
+    for dxa in dxa_widths:
         gc = OxmlElement('w:gridCol')
-        gc.set(qn('w:w'), str(int(round(w * 56.6929))))
+        gc.set(qn('w:w'), str(dxa))
         new_grid.append(gc)
     tblPr.addnext(new_grid)
 
-    for row in table.rows:
-        for ci, cell in enumerate(row.cells):
-            if ci >= len(widths_mm):
-                continue
-            tcPr = cell._tc.get_or_add_tcPr()
-            grid_span = tcPr.find(qn('w:gridSpan'))
-            if grid_span is not None and int(grid_span.get(qn('w:val'), '1')) > 1:
-                continue
-            w_mm = widths_mm[ci]
-            cell.width = Mm(w_mm)
+    for tcs, spans, grid_before in row_meta:
+        col_idx = grid_before
+        for tc, span in zip(tcs, spans):
+            tcPr = tc.get_or_add_tcPr()
+            span_dxa = sum(dxa_widths[col_idx : col_idx + span])
             tcW = tcPr.find(qn('w:tcW'))
             if tcW is None:
                 tcW = OxmlElement('w:tcW')
                 tcPr.append(tcW)
-            tcW.set(qn('w:w'), str(int(round(w_mm * 56.6929))))
+            tcW.set(qn('w:w'), str(span_dxa))
             tcW.set(qn('w:type'), 'dxa')
+            col_idx += span
 
 
-def check_pdf_page_breaks(docx_path, out_pdf_dir=None, orphan_chars=150):
-    """Опциональный контроль вёрстки (Этап 8): экспорт .docx → PDF и анализ разрывов страниц.
+def check_pdf_page_breaks(docx_path, out_pdf_dir=None, orphan_chars=150, timeout=60):
+    """Опциональный контроль границ страниц (Этап 8): экспорт .docx → PDF и анализ через pypdf.
 
-    Использует MS Word COM (Windows + pywin32) или LibreOffice (soffice --headless) + pypdf.
-    При отсутствии конвертера или pypdf печатает SKIP и возвращает None (не падает).
+    Режимы работы:
+      1. Автоматическая эвристика: предупреждение (WARN) при малотекстовой последней странице
+         (< orphan_chars символов — частый признак оторвавшейся подписи/строки, требует проверки).
+      2. Диагностический вывод: печать числа символов, начала и конца текста каждой страницы
+         для ручной оценки разрывов страниц и сохранённый PDF для визуального контроля.
+
+    Экспорт всегда выполняется в изолированный временный каталог (старый PDF из прошлых
+    запусков никогда не читается при ошибке конвертации). Исключения конвертеров, таймауты
+    и ошибки чтения PDF перехватываются.
+
+    Возвращает структурированный dict:
+      {
+        "status": "ok" | "skipped" | "export_failed" | "parse_failed",
+        "converter": "word_com" | "libreoffice" | None,
+        "pdf_path": str | None,
+        "pages": [{"page": int, "chars": int, "start": str, "end": str}, ...],
+        "warnings": [str, ...],
+        "error": str | None,
+      }
     """
     from pathlib import Path
-    import subprocess
     import shutil as _shutil
+    import subprocess
+    import tempfile
 
     src = Path(docx_path).resolve()
+    if not src.is_file():
+        msg = f"Исходный DOCX не найден: {src}"
+        print(f"EXPORT_FAILED PDF-проверка ({src.name}): {msg}")
+        return {
+            "status": "export_failed", "converter": None, "pdf_path": None,
+            "pages": [], "warnings": [], "error": msg,
+        }
+
     pdf_dir = Path(out_pdf_dir).resolve() if out_pdf_dir else src.parent / "_pdf_check"
-    pdf_dir.mkdir(parents=True, exist_ok=True)
-    pdf_path = pdf_dir / (src.stem + ".pdf")
+    final_pdf = pdf_dir / (src.stem + ".pdf")
 
-    exported = False
-    try:
-        import win32com.client  # type: ignore
-        word = win32com.client.Dispatch("Word.Application")
-        word.Visible = False
-        word.DisplayAlerts = 0
+    attempted = []
+    errors = []
+    used_converter = None
+
+    with tempfile.TemporaryDirectory(prefix="docx_pdf_check_") as tmp_dir_str:
+        tmp_dir = Path(tmp_dir_str)
+        tmp_pdf = tmp_dir / (src.stem + ".pdf")
+
+        # 1. Пробуем MS Word COM (Windows + pywin32)
         try:
-            d = word.Documents.Open(str(src), ReadOnly=True)
-            d.SaveAs2(str(pdf_path), FileFormat=17)  # wdFormatPDF
-            d.Close(False)
-            exported = pdf_path.is_file()
-        finally:
-            word.Quit()
-    except Exception:
-        soffice = _shutil.which("soffice") or _shutil.which("libreoffice")
-        if soffice:
-            subprocess.run(
-                [soffice, "--headless", "--convert-to", "pdf", "--outdir", str(pdf_dir), str(src)],
-                check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60,
-            )
-            exported = pdf_path.is_file()
+            import win32com.client as _win32com_client  # type: ignore
+        except ImportError:
+            _win32com_client = None
 
-    if not exported:
-        print(f"SKIP PDF-проверка ({src.name}): не найден Word COM (pywin32) или LibreOffice")
-        return None
+        if _win32com_client is not None:
+            attempted.append("word_com")
+            word = None
+            try:
+                word = _win32com_client.Dispatch("Word.Application")
+                word.Visible = False
+                word.DisplayAlerts = 0
+                d = word.Documents.Open(str(src), ReadOnly=True)
+                try:
+                    d.SaveAs2(str(tmp_pdf), FileFormat=17)  # wdFormatPDF
+                finally:
+                    d.Close(False)
+                if tmp_pdf.is_file() and tmp_pdf.stat().st_size > 0:
+                    used_converter = "word_com"
+                else:
+                    errors.append("word_com: создан пустой или отсутствующий PDF")
+            except Exception as exc:
+                errors.append(f"word_com: {type(exc).__name__}: {exc}")
+            finally:
+                if word is not None:
+                    try:
+                        word.Quit()
+                    except Exception:
+                        pass
+
+        # 2. Fallback: LibreOffice (soffice --headless) в отдельный временный каталог
+        if used_converter is None:
+            soffice = _shutil.which("soffice") or _shutil.which("libreoffice")
+            if soffice:
+                attempted.append("libreoffice")
+                try:
+                    proc = subprocess.run(
+                        [soffice, "--headless", "--convert-to", "pdf", "--outdir", str(tmp_dir), str(src)],
+                        check=False, capture_output=True, text=True, timeout=timeout,
+                    )
+                    if proc.returncode == 0 and tmp_pdf.is_file() and tmp_pdf.stat().st_size > 0:
+                        used_converter = "libreoffice"
+                    else:
+                        detail_out = (proc.stderr or proc.stdout or "").strip()[:200]
+                        errors.append(
+                            f"libreoffice rc={proc.returncode}"
+                            + (f": {detail_out}" if detail_out else " (PDF не создан или пуст)")
+                        )
+                except subprocess.TimeoutExpired:
+                    errors.append(f"libreoffice: timeout ({timeout}s)")
+                except OSError as exc:
+                    errors.append(f"libreoffice: {type(exc).__name__}: {exc}")
+
+        if used_converter is None:
+            if not attempted:
+                msg = "не найден Word COM (pywin32) или LibreOffice (soffice)"
+                print(f"SKIP PDF-проверка ({src.name}): {msg}")
+                return {
+                    "status": "skipped", "converter": None, "pdf_path": None,
+                    "pages": [], "warnings": [], "error": msg,
+                }
+            msg = "; ".join(errors) or "ошибка конвертации PDF"
+            print(f"EXPORT_FAILED PDF-проверка ({src.name}): {msg}")
+            return {
+                "status": "export_failed", "converter": None, "pdf_path": None,
+                "pages": [], "warnings": [], "error": msg,
+            }
+
+        pdf_dir.mkdir(parents=True, exist_ok=True)
+        _shutil.copy2(tmp_pdf, final_pdf)
 
     try:
         import pypdf
     except ImportError:
-        print(f"SKIP PDF-анализ ({pdf_path.name}): pypdf не установлен (входит в профиль lite)")
-        return None
+        msg = "pypdf не установлен (входит в профиль lite)"
+        print(f"SKIP PDF-анализ ({final_pdf.name}): {msg}")
+        return {
+            "status": "skipped", "converter": used_converter, "pdf_path": str(final_pdf),
+            "pages": [], "warnings": [], "error": msg,
+        }
 
-    reader = pypdf.PdfReader(str(pdf_path))
-    pages_info = []
-    for idx, page in enumerate(reader.pages, start=1):
-        txt = re.sub(r'\s+', ' ', (page.extract_text() or '')).strip()
-        pages_info.append({"page": idx, "chars": len(txt), "start": txt[:80], "end": txt[-80:]})
-        print(f"  Стр.{idx} ({len(txt)} симв.): {txt[:60]!r} ... {txt[-60:]!r}")
+    try:
+        reader = pypdf.PdfReader(str(final_pdf))
+        pages_info = []
+        for idx, page in enumerate(reader.pages, start=1):
+            txt = re.sub(r'\s+', ' ', (page.extract_text() or '')).strip()
+            pages_info.append({"page": idx, "chars": len(txt), "start": txt[:80], "end": txt[-80:]})
+            print(f"  Стр.{idx} ({len(txt)} симв.): {txt[:60]!r} ... {txt[-60:]!r}")
+    except Exception as exc:
+        msg = f"{type(exc).__name__}: {exc}"
+        print(f"PARSE_FAILED PDF-анализ ({final_pdf.name}): {msg}")
+        return {
+            "status": "parse_failed", "converter": used_converter, "pdf_path": str(final_pdf),
+            "pages": [], "warnings": [], "error": msg,
+        }
+
+    warnings = []
     if len(pages_info) > 1 and pages_info[-1]["chars"] < orphan_chars:
-        print(f"  WARN: последняя страница {len(pages_info)} содержит лишь {pages_info[-1]['chars']} симв. — вероятна оторвавшаяся подпись/строка")
-    return pages_info
+        w = (
+            f"последняя страница {len(pages_info)} содержит лишь {pages_info[-1]['chars']} симв. "
+            f"(< {orphan_chars}) — возможна оторвавшаяся подпись или строка (проверить глазами)"
+        )
+        warnings.append(w)
+        print(f"  WARN: {w}")
+
+    return {
+        "status": "ok",
+        "converter": used_converter,
+        "pdf_path": str(final_pdf),
+        "pages": pages_info,
+        "warnings": warnings,
+        "error": None,
+    }
 
 
 if __name__ == "__main__":

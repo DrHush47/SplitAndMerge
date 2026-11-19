@@ -261,9 +261,60 @@ def set_row_header(row):
 
 
 def set_table_col_widths(table, widths_mm):
-    """Set fixed column widths in mm via w:tblLayout=fixed + w:tblGrid (gridSpan-safe)."""
+    """Set fixed column widths in mm via w:tblLayout=fixed + w:tblGrid + gridSpan sum for merged cells.
+
+    Validates positive widths and logical column count per row (including gridSpan/gridBefore/gridAfter).
+    Horizontally merged cells (w:gridSpan > 1) get w:tcW equal to the sum of covered grid columns.
+    """
+    if (
+        not widths_mm
+        or any(not isinstance(w, (int, float)) or isinstance(w, bool) or w <= 0 for w in widths_mm)
+    ):
+        raise ValueError(f"widths_mm must be a non-empty sequence of positive numbers, got: {widths_mm!r}")
+
+    expected_cols = len(widths_mm)
+    dxa_widths = [round(w * 56.6929) for w in widths_mm]
+    trs = table._tbl.findall(qn('w:tr'))
+
+    row_meta = []
+    for row_idx, tr in enumerate(trs):
+        trPr = tr.find(qn('w:trPr'))
+        grid_before = 0
+        grid_after = 0
+        if trPr is not None:
+            gb = trPr.find(qn('w:gridBefore'))
+            if gb is not None:
+                grid_before = int(gb.get(qn('w:val'), '0'))
+            ga = trPr.find(qn('w:gridAfter'))
+            if ga is not None:
+                grid_after = int(ga.get(qn('w:val'), '0'))
+        tcs = tr.findall(qn('w:tc'))
+        spans = []
+        for tc in tcs:
+            tcPr = tc.find(qn('w:tcPr'))
+            gs = tcPr.find(qn('w:gridSpan')) if tcPr is not None else None
+            spans.append(int(gs.get(qn('w:val'), '1')) if gs is not None else 1)
+        row_cols = grid_before + sum(spans) + grid_after
+        if row_cols != expected_cols:
+            raise ValueError(
+                f"Row {row_idx} has {row_cols} logical columns, expected len(widths_mm)={expected_cols}"
+            )
+        row_meta.append((tcs, spans, grid_before))
+
     table.autofit = False
     tblPr = table._tbl.tblPr
+
+    tblW = tblPr.find(qn('w:tblW'))
+    if tblW is None:
+        tblW = OxmlElement('w:tblW')
+        tblStyle = tblPr.find(qn('w:tblStyle'))
+        if tblStyle is not None:
+            tblStyle.addnext(tblW)
+        else:
+            tblPr.insert(0, tblW)
+    tblW.set(qn('w:w'), str(sum(dxa_widths)))
+    tblW.set(qn('w:type'), 'dxa')
+
     old_layout = tblPr.find(qn('w:tblLayout'))
     if old_layout is not None:
         tblPr.remove(old_layout)
@@ -273,79 +324,170 @@ def set_table_col_widths(table, widths_mm):
     if old_grid is not None:
         table._tbl.remove(old_grid)
     new_grid = OxmlElement('w:tblGrid')
-    for w in widths_mm:
+    for dxa in dxa_widths:
         gc = OxmlElement('w:gridCol')
-        gc.set(qn('w:w'), str(int(round(w * 56.6929))))
+        gc.set(qn('w:w'), str(dxa))
         new_grid.append(gc)
     tblPr.addnext(new_grid)
 
-    for row in table.rows:
-        for ci, cell in enumerate(row.cells):
-            if ci >= len(widths_mm):
-                continue
-            tcPr = cell._tc.get_or_add_tcPr()
-            grid_span = tcPr.find(qn('w:gridSpan'))
-            if grid_span is not None and int(grid_span.get(qn('w:val'), '1')) > 1:
-                continue
-            w_mm = widths_mm[ci]
-            cell.width = Mm(w_mm)
+    for tcs, spans, grid_before in row_meta:
+        col_idx = grid_before
+        for tc, span in zip(tcs, spans):
+            tcPr = tc.get_or_add_tcPr()
+            span_dxa = sum(dxa_widths[col_idx : col_idx + span])
             tcW = tcPr.find(qn('w:tcW'))
             if tcW is None:
                 tcW = OxmlElement('w:tcW')
                 tcPr.append(tcW)
-            tcW.set(qn('w:w'), str(int(round(w_mm * 56.6929))))
+            tcW.set(qn('w:w'), str(span_dxa))
             tcW.set(qn('w:type'), 'dxa')
+            col_idx += span
 
 
-def check_pdf_page_breaks(docx_path, out_pdf_dir=None, orphan_chars=150):
-    """Optional Stage 8 layout check: export .docx -> PDF (Word COM or LibreOffice) and inspect pages via pypdf."""
+def check_pdf_page_breaks(docx_path, out_pdf_dir=None, orphan_chars=150, timeout=60):
+    """Optional Stage 8 page-boundary check: export .docx -> PDF (isolated temp dir) and inspect via pypdf.
+
+    Modes:
+      1. Automatic heuristic: flags a low-text final page (< orphan_chars chars — possible orphan signature/row).
+      2. Diagnostic output: prints char count, start and end snippets per page for manual review + saves PDF.
+
+    Never reads a stale PDF from an earlier run on export failure; catches converter errors, timeouts, and PDF parse errors.
+    Returns structured dict with status in {'ok', 'skipped', 'export_failed', 'parse_failed'}.
+    """
     from pathlib import Path
-    import subprocess
     import shutil
+    import subprocess
+    import tempfile
 
     src = Path(docx_path).resolve()
+    if not src.is_file():
+        msg = f"Source DOCX not found: {src}"
+        print(f"  EXPORT_FAILED PDF check ({src.name}): {msg}")
+        return {
+            "status": "export_failed", "converter": None, "pdf_path": None,
+            "pages": [], "warnings": [], "error": msg,
+        }
+
     pdf_dir = Path(out_pdf_dir).resolve() if out_pdf_dir else src.parent / "_pdf_check"
-    pdf_dir.mkdir(parents=True, exist_ok=True)
-    pdf_path = pdf_dir / (src.stem + ".pdf")
+    final_pdf = pdf_dir / (src.stem + ".pdf")
 
-    exported = False
-    try:
-        import win32com.client  # type: ignore
-        word = win32com.client.Dispatch("Word.Application")
-        word.Visible = False
-        word.DisplayAlerts = 0
+    attempted = []
+    errors = []
+    used_converter = None
+
+    with tempfile.TemporaryDirectory(prefix="docx_pdf_check_") as tmp_dir_str:
+        tmp_dir = Path(tmp_dir_str)
+        tmp_pdf = tmp_dir / (src.stem + ".pdf")
+
         try:
-            d = word.Documents.Open(str(src), ReadOnly=True)
-            d.SaveAs2(str(pdf_path), FileFormat=17)
-            d.Close(False)
-            exported = pdf_path.is_file()
-        finally:
-            word.Quit()
-    except Exception:
-        soffice = shutil.which("soffice") or shutil.which("libreoffice")
-        if soffice:
-            subprocess.run(
-                [soffice, "--headless", "--convert-to", "pdf", "--outdir", str(pdf_dir), str(src)],
-                check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60,
-            )
-            exported = pdf_path.is_file()
+            import win32com.client as _win32com_client  # type: ignore
+        except ImportError:
+            _win32com_client = None
 
-    if not exported:
-        print(f"  SKIP PDF check ({src.name}): neither Word COM (pywin32) nor LibreOffice found")
-        return None
+        if _win32com_client is not None:
+            attempted.append("word_com")
+            word = None
+            try:
+                word = _win32com_client.Dispatch("Word.Application")
+                word.Visible = False
+                word.DisplayAlerts = 0
+                d = word.Documents.Open(str(src), ReadOnly=True)
+                try:
+                    d.SaveAs2(str(tmp_pdf), FileFormat=17)
+                finally:
+                    d.Close(False)
+                if tmp_pdf.is_file() and tmp_pdf.stat().st_size > 0:
+                    used_converter = "word_com"
+                else:
+                    errors.append("word_com: produced missing or empty PDF")
+            except Exception as exc:
+                errors.append(f"word_com: {type(exc).__name__}: {exc}")
+            finally:
+                if word is not None:
+                    try:
+                        word.Quit()
+                    except Exception:
+                        pass
+
+        if used_converter is None:
+            soffice = shutil.which("soffice") or shutil.which("libreoffice")
+            if soffice:
+                attempted.append("libreoffice")
+                try:
+                    proc = subprocess.run(
+                        [soffice, "--headless", "--convert-to", "pdf", "--outdir", str(tmp_dir), str(src)],
+                        check=False, capture_output=True, text=True, timeout=timeout,
+                    )
+                    if proc.returncode == 0 and tmp_pdf.is_file() and tmp_pdf.stat().st_size > 0:
+                        used_converter = "libreoffice"
+                    else:
+                        detail_out = (proc.stderr or proc.stdout or "").strip()[:200]
+                        errors.append(
+                            f"libreoffice rc={proc.returncode}"
+                            + (f": {detail_out}" if detail_out else " (missing or empty PDF)")
+                        )
+                except subprocess.TimeoutExpired:
+                    errors.append(f"libreoffice: timeout ({timeout}s)")
+                except OSError as exc:
+                    errors.append(f"libreoffice: {type(exc).__name__}: {exc}")
+
+        if used_converter is None:
+            if not attempted:
+                msg = "neither Word COM (pywin32) nor LibreOffice (soffice) is installed"
+                print(f"  SKIP PDF check ({src.name}): {msg}")
+                return {
+                    "status": "skipped", "converter": None, "pdf_path": None,
+                    "pages": [], "warnings": [], "error": msg,
+                }
+            msg = "; ".join(errors) or "PDF export failed"
+            print(f"  EXPORT_FAILED PDF check ({src.name}): {msg}")
+            return {
+                "status": "export_failed", "converter": None, "pdf_path": None,
+                "pages": [], "warnings": [], "error": msg,
+            }
+
+        pdf_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(tmp_pdf, final_pdf)
 
     try:
         import pypdf
     except ImportError:
-        print(f"  SKIP PDF check ({pdf_path.name}): pypdf not installed")
-        return None
+        msg = "pypdf not installed (included in profile lite)"
+        print(f"  SKIP PDF check ({final_pdf.name}): {msg}")
+        return {
+            "status": "skipped", "converter": used_converter, "pdf_path": str(final_pdf),
+            "pages": [], "warnings": [], "error": msg,
+        }
 
-    reader = pypdf.PdfReader(str(pdf_path))
-    pages_info = []
-    for idx, page in enumerate(reader.pages, start=1):
-        txt = re.sub(r'\s+', ' ', (page.extract_text() or '')).strip()
-        pages_info.append({"page": idx, "chars": len(txt), "start": txt[:80], "end": txt[-80:]})
-        print(f"  Page {idx} ({len(txt)} chars): {txt[:60]!r} ... {txt[-60:]!r}")
+    try:
+        reader = pypdf.PdfReader(str(final_pdf))
+        pages_info = []
+        for idx, page in enumerate(reader.pages, start=1):
+            txt = re.sub(r'\s+', ' ', (page.extract_text() or '')).strip()
+            pages_info.append({"page": idx, "chars": len(txt), "start": txt[:80], "end": txt[-80:]})
+            print(f"  Page {idx} ({len(txt)} chars): {txt[:60]!r} ... {txt[-60:]!r}")
+    except Exception as exc:
+        msg = f"{type(exc).__name__}: {exc}"
+        print(f"  PARSE_FAILED PDF check ({final_pdf.name}): {msg}")
+        return {
+            "status": "parse_failed", "converter": used_converter, "pdf_path": str(final_pdf),
+            "pages": [], "warnings": [], "error": msg,
+        }
+
+    warnings = []
     if len(pages_info) > 1 and pages_info[-1]["chars"] < orphan_chars:
-        print(f"  WARN: last page {len(pages_info)} has only {pages_info[-1]['chars']} chars — likely orphan signature/row")
-    return pages_info
+        w = (
+            f"last page {len(pages_info)} has only {pages_info[-1]['chars']} chars "
+            f"(< {orphan_chars}) — possible orphan signature/row (verify visually)"
+        )
+        warnings.append(w)
+        print(f"  WARN: {w}")
+
+    return {
+        "status": "ok",
+        "converter": used_converter,
+        "pdf_path": str(final_pdf),
+        "pages": pages_info,
+        "warnings": warnings,
+        "error": None,
+    }
