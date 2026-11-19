@@ -20,6 +20,7 @@ from pipeline.verdicts import (
 @pytest.mark.parametrize("status,expected", [
     ("CONFIRMED", Verdict.CONFIRMED),
     ("MISMATCH", Verdict.REFUTED),
+    ("UNCERTAIN", Verdict.UNCERTAIN),
     ("ERROR", Verdict.UNCERTAIN),
     ("SKIP", Verdict.UNCERTAIN),
     ("?неизвестный_статус?", Verdict.UNCERTAIN),  # консервативный fallback

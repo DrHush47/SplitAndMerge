@@ -24,7 +24,11 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from pipeline.common import read_targets, validate_prefix, fix_windows_console, default_out_dir, STOP_WORDS
+from pipeline.common import (
+    read_targets, validate_prefix, fix_windows_console, default_out_dir,
+    STOP_WORDS, CYRILLIC_TO_LATIN, BIOMED_COGNATES,
+    transliterate_cyrillic, has_cyrillic,
+)
 
 PMID_URL_RE = re.compile(r"(?:pubmed\.ncbi\.nlm\.nih\.gov|ncbi\.nlm\.nih\.gov/pubmed)/(\d+)", re.IGNORECASE)
 PMID_EXPECT_RE = re.compile(r"(?:PMID|pmid)[:\s#]*(\d+)", re.IGNORECASE)
@@ -181,115 +185,9 @@ def lookup_europepmc(query_id, is_pmc=False, timeout=15):
         return None, f"{type(exc).__name__}: {exc}"
 
 
-# =================== ТРАНСЛИТЕРАЦИЯ И БИОМЕДИЦИНСКИЕ ТЕРМИНЫ ===================
-
-CYRILLIC_TO_LATIN = {
-    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e',
-    'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
-    'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
-    'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'shch',
-    'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
-}
-
-
-def transliterate_cyrillic(text: str) -> str:
-    """Транслитерация кириллицы в латиницу для сопоставления фамилий и терминов."""
-    return "".join(CYRILLIC_TO_LATIN.get(ch, ch) for ch in text.lower())
-
-
-def has_cyrillic(text: str) -> bool:
-    """Проверка наличия символов кириллицы в строке."""
-    return bool(re.search(r'[\u0400-\u04FF]', text))
-
-
-# Двуязычный словарь медицинских и гистологических корней (RU -> EN stem)
-BIOMED_COGNATES = {
-    # Органы, ткани, клетки
-    "миокард": "myocard",
-    "кардио": "cardio",
-    "кардиолог": "cardiolog",
-    "сердеч": "cardiac",
-    "сердц": "heart",
-    "сосуд": "vascul",
-    "артери": "arter",
-    "вен": "vein",
-    "эндотели": "endothel",
-    "печен": "hepat",
-    "печеноч": "hepat",
-    "почеч": "renal",
-    "почек": "renal",
-    "почк": "kidney",
-    "легк": "pulmon",
-    "легоч": "pulmon",
-    "мозг": "cerebr",
-    "мозгов": "cerebr",
-    "ткань": "tissue",
-    "тканей": "tissue",
-    "ткани": "tissue",
-    "клетк": "cell",
-    "клеточ": "cell",
-    "кров": "blood",
-    "сыворотк": "serum",
-    "плазм": "plasma",
-    # Патологические и морфологические процессы
-    "гипертроф": "hypertroph",
-    "морфолог": "morpholog",
-    "морфометр": "morphometr",
-    "гистолог": "histolog",
-    "онколог": "oncolog",
-    "опухол": "tumor",
-    "рак": "cancer",
-    "карцином": "carcinom",
-    "диабет": "diabet",
-    "атеросклероз": "atheroscler",
-    "ишеми": "ischem",
-    "инфаркт": "infarct",
-    "некроз": "necro",
-    "фиброз": "fibros",
-    "склероз": "scleros",
-    "воспален": "inflammat",
-    "апоптоз": "apoptos",
-    "пролифераци": "proliferat",
-    "мутаци": "mutat",
-    "гипертензи": "hypertens",
-    # Молекулярная биология, биохимия, генетика
-    "экспресси": "express",
-    "ген": "gene",
-    "геном": "genom",
-    "генети": "genet",
-    "хромосом": "chromosom",
-    "белок": "protein",
-    "белк": "protein",
-    "рецептор": "receptor",
-    "ингибитор": "inhibitor",
-    "активатор": "activator",
-    "фермент": "enzym",
-    "маркер": "marker",
-    "биомаркер": "biomarker",
-    "молекуляр": "molecular",
-    "структур": "structur",
-    "регуляци": "regulat",
-    "функци": "function",
-    "активност": "activ",
-    # Клиника и терапия
-    "терапи": "therap",
-    "клинич": "clinic",
-    "фармакол": "pharmacol",
-    "биопси": "biops",
-    "синдром": "syndrom",
-    "патолог": "patholog",
-    "анатом": "anatom",
-    "иммун": "immun",
-    "пациент": "patient",
-    "стади": "stage",
-    "диагностик": "diagnos",
-    "трансплант": "transplant",
-    "препарат": "drug",
-    "лекарств": "medicat",
-}
-
-
 # =================== КРОСС-ПРОВЕРКА FACT vs METADATA ===================
+# CYRILLIC_TO_LATIN, BIOMED_COGNATES, transliterate_cyrillic, has_cyrillic
+# импортируются из единого источника pipeline.common (SSOT).
 
 def check_biomed_fact_match(fact, data):
     """Сравнить fact-строку с биомедицинскими метаданными (автор, ключевые слова названия).

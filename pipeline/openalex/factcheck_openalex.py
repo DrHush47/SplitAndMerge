@@ -21,7 +21,10 @@ from pathlib import Path
 
 # Import shared utilities from scripts/common.py
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from common import read_targets, validate_prefix, fix_windows_console, default_out_dir, STOP_WORDS
+from common import (
+    read_targets, validate_prefix, fix_windows_console, default_out_dir,
+    STOP_WORDS, BIOMED_COGNATES, transliterate_cyrillic, has_cyrillic,
+)
 
 DOI_URL_RE = re.compile(r"doi\.org/(10\.[^/?#]+/[^/?#]+)")
 DOI_EXPECT_RE = re.compile(r"(?:DOI|doi)\s*(10\.[^\s,;)\]]+)", re.IGNORECASE)
@@ -99,32 +102,34 @@ def format_authors(data):
 
 # =================== КРОСС-ПРОВЕРКА FACT vs METADATA ===================
 
-def check_fact_match(fact, data):
-    """Сравнить fact-строку с метаданными OpenAlex.
+def classify_fact_match(fact, data):
+    """Сравнить fact-строку с метаданными OpenAlex (включая RU ↔ EN транслитерацию).
 
-    Возвращает (is_match: bool, detail: str).
+    Возвращает (status: str, detail: str), где status — один из:
+      - "CONFIRMED": совпал автор (прямо или через транслитерацию) и/или заголовок
+      - "UNCERTAIN": языковой барьер (кириллический fact против англоязычного title
+                     без совпадения фамилии/корней — требуется ручная сверка или
+                     лёгкий фетчер, а не ложный MISMATCH)
+      - "MISMATCH":  ни автор, ни заголовок не совпали в одном алфавите
 
-    Проверки:
-    1. Фамилия первого автора из OpenAlex встречается в fact-строке (case-insensitive)
-    2. Значимые слова из fact-строки (за вычетом стоп-слов) встречаются в title OpenAlex
-
-    Если ОБЕ проверки не прошли → MISMATCH (факт не соответствует реальной статье).
-    Если хотя бы ОДНА прошла → OK.
-
-    Эмпирическое обоснование: тест 27 источников (2026-07-19).
-    Источник #26 — DOI 10.1371/journal.pone.0153335 реален, но fact-строка
-    «Chen Y. — Deep learning for pediatric chest radiographs» не совпадает
-    с реальной статьёй. OpenAlex вернул CONFIRMED, но автор и тема не совпали.
+    Эмпирическое обоснование:
+      - Тест 27 источников (2026-07-19): DOI 10.1371/journal.pone.0153335 реален,
+        но fact не совпадает со статьёй → MISMATCH.
+      - Сессия 2026-11-19 (русскоязычные статьи ВАК с DOI в OpenAlex): кириллица в fact
+        против латиницы OpenAlex давала 7/7 ложных MISMATCH; перенос RU↔EN транслитерации
+        и мягкого UNCERTAIN из factcheck_biomed.py устраняет ложные срабатывания.
     """
     title = (data.get("title") or "").lower()
     surname = get_first_author_surname(data)  # может быть str или tuple
     fact_lower = fact.lower()
+    fact_cyrillic = has_cyrillic(fact)
+    fact_translit = transliterate_cyrillic(fact_lower) if fact_cyrillic else fact_lower
+    lang_barrier = fact_cyrillic and bool(title) and not has_cyrillic(title)
 
     checks_passed = []
     checks_failed = []
 
-    # Проверка 1: фамилия первого автора в fact-строке
-    # surname может быть строкой (один вариант) или кортежем (western, eastern варианты)
+    # Проверка 1: фамилия первого автора в fact-строке (прямо + транслит RU→EN)
     if isinstance(surname, tuple):
         surnames = list(surname)
     else:
@@ -133,30 +138,64 @@ def check_fact_match(fact, data):
     author_matched = False
     for s in surnames:
         if s and len(s) >= 2:
-            if s.lower() in fact_lower:
+            s_low = s.lower()
+            if s_low in fact_lower:
                 checks_passed.append(f"author '{s}' found in fact")
                 author_matched = True
                 break
+            if fact_cyrillic and s_low in fact_translit:
+                checks_passed.append(f"author '{s}' found in fact (translit)")
+                author_matched = True
+                break
+
+    # Для кириллической цитаты дополнительно проверяем соавторов (если первый автор транслитерирован иначе)
+    if not author_matched and fact_cyrillic:
+        for au in data.get("authorships", [])[1:]:
+            aname = (au.get("author") or {}).get("display_name", "")
+            parts = aname.split()
+            cand_surnames = [parts[-1], parts[0]] if len(parts) >= 2 else parts
+            for cs in cand_surnames:
+                cs_clean = cs.strip(".,")
+                if len(cs_clean) >= 3 and cs_clean.lower() in fact_translit:
+                    checks_passed.append(f"co-author '{cs_clean}' found in fact (translit)")
+                    author_matched = True
+                    break
+            if author_matched:
+                break
+
     if not author_matched and surnames:
         checks_failed.append(f"authors {surnames} NOT in fact")
 
     # Проверка 2: значимые слова из fact в title OpenAlex
-    # Извлекаем «название» из fact (всё после тире или точки)
     fact_title_part = fact_lower
     for sep in [" — ", ". ", " —", "— "]:
         if sep in fact_lower:
             fact_title_part = fact_lower.split(sep, 1)[1]
             break
 
-    # Стоп-слова + короткие слова (<4 букв) исключаем
     stop_words = STOP_WORDS  # общий словарь из pipeline/common.py
-    fact_words = {w.strip(".,;:()[]«»\"'") for w in fact_title_part.split()
-                  if len(w.strip(".,;:()[]«»\"'")) >= 4
-                  and w.strip(".,;:()[]«»\"'").lower() not in stop_words}
+    fact_words = {
+        w.strip(".,;:()[]«»\"'") for w in fact_title_part.split()
+        if len(w.strip(".,;:()[]«»\"'")) >= 4
+        and w.strip(".,;:()[]«»\"'").lower() not in stop_words
+    }
 
     title_words = {w.strip(".,;:()[]«»\"'") for w in title.split()}
     title_words = {w for w in title_words if w}
-    matches = fact_words & title_words
+
+    matches = set(fact_words & title_words)
+    # При языковом барьере (RU fact vs EN title) дополнительно сверяем медицинские корни и транслит-префикс
+    if lang_barrier:
+        for fw in fact_words - matches:
+            for ru_stem, en_stem in BIOMED_COGNATES.items():
+                if ru_stem in fw and (any(en_stem in tw for tw in title_words) or en_stem in title):
+                    matches.add(fw)
+                    break
+            if fw not in matches:
+                fw_tr = transliterate_cyrillic(fw)
+                if len(fw_tr) >= 5 and any(fw_tr[:5] in tw for tw in title_words):
+                    matches.add(fw)
+
     if len(fact_words) >= 3:
         overlap = len(matches) / len(fact_words)
         if overlap >= 0.3:
@@ -169,9 +208,18 @@ def check_fact_match(fact, data):
         else:
             checks_failed.append(f"no title word overlap (fact words: {fact_words})")
 
-    is_match = len(checks_passed) > 0
     detail = "; ".join(checks_passed + checks_failed)
-    return is_match, detail
+    if checks_passed:
+        return "CONFIRMED", detail
+    if lang_barrier:
+        return "UNCERTAIN", f"language barrier (Cyrillic fact vs English metadata); {detail}"
+    return "MISMATCH", detail
+
+
+def check_fact_match(fact, data):
+    """Обратно совместимая обёртка над classify_fact_match: возвращает (is_match: bool, detail: str)."""
+    status, detail = classify_fact_match(fact, data)
+    return status == "CONFIRMED", detail
 
 
 def format_biblio(data):
@@ -293,14 +341,14 @@ def batch_lookup(targets, prefix, timeout, mailto, out_dir=None, crosscheck=True
                 year = data.get("publication_year", "?")
                 cited = data.get("cited_by_count", 0)
 
-                # Кросс-проверка: fact vs реальные метаданные
+                # Кросс-проверка: fact vs реальные метаданные (с поддержкой RU↔EN)
                 if crosscheck:
-                    is_match, match_detail = check_fact_match(fact, data)
-                    if is_match:
-                        status = "CONFIRMED"
-                    else:
-                        status = "MISMATCH"
+                    status, match_detail = classify_fact_match(fact, data)
+                    is_match = (status == "CONFIRMED")
+                    if status == "MISMATCH":
                         error = f"Fact does not match article metadata: {match_detail}"
+                    elif status == "UNCERTAIN":
+                        error = f"Uncertain match (manual/lite check recommended): {match_detail}"
                 else:
                     is_match = True
                     status = "CONFIRMED"
@@ -323,13 +371,16 @@ def batch_lookup(targets, prefix, timeout, mailto, out_dir=None, crosscheck=True
     print("SUMMARY (OpenAlex Ур.0.5)", flush=True)
     print("=" * 70, flush=True)
     confirmed = sum(1 for r in results.values() if r["status"] == "CONFIRMED")
+    uncertain = sum(1 for r in results.values() if r["status"] == "UNCERTAIN")
     mismatches = sum(1 for r in results.values() if r["status"] == "MISMATCH")
     errors = sum(1 for r in results.values() if r["status"] == "ERROR")
     skipped = sum(1 for r in results.values() if r["status"] == "SKIP")
-    print(f"CONFIRMED={confirmed}  MISMATCH={mismatches}  ERROR={errors}  SKIP={skipped}  TOTAL={len(results)}", flush=True)
+    print(f"CONFIRMED={confirmed}  UNCERTAIN={uncertain}  MISMATCH={mismatches}  ERROR={errors}  SKIP={skipped}  TOTAL={len(results)}", flush=True)
     for tid, r in results.items():
         if r["status"] == "CONFIRMED":
             flag = "OK"
+        elif r["status"] == "UNCERTAIN":
+            flag = "UNC"
         elif r["status"] == "MISMATCH":
             flag = "MIS"
         elif r["status"] == "ERROR":

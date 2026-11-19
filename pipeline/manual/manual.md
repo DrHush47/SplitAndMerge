@@ -10,7 +10,7 @@
 |---|---|---:|---|
 | **Ядро факт-чекеров** | Только stdlib Python (`factcheck_openalex.py`, `factcheck_biomed.py`, `factcheck_manual.py`, `sam.py --levels 0.5`) | 0 МБ | Программная проверка DOI (Ур.0.5), PMID/PMCID (Ур.0.7), ручной трек |
 | **Документы `.docx`** | `python-docx` (+ `lxml`) | ~11,4 МБ | Разведка, правка и генерация научных/кадровых `.docx` |
-| **Лёгкий веб/PDF-разбор** | `beautifulsoup4` + `pypdf` | ~4,8 МБ | Парсинг открытых HTML-страниц, `<meta name="citation_*">` и PDF-источников (вкл. `.pdf` в `factcheck_manual.py`) |
+| **Лёгкий веб/PDF-разбор** | `beautifulsoup4` + `pypdf` (`pipeline/lite/fetch_lite.py`) | ~4,8 МБ | Парсинг открытых HTML-страниц, `<meta name="citation_*">` и PDF-источников (вкл. `.pdf` в `factcheck_manual.py`) без Playwright |
 | **Биомед-навыки** | `polite-http` + `python-dotenv` | ~0,3 МБ | Автономные навыки PubMed, Europe PMC, HPA, ClinicalTrials, UniProt, ChEMBL, OpenFDA, PDB |
 
 - **Покрытие:** ~95% повседневных задач без установки `Playwright`/`Chromium` (~1,56 ГБ).

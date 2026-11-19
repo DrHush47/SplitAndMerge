@@ -238,6 +238,9 @@ def run_cascade(targets, exec_levels, args, out_dir):
         elif states and all(s == BLOCKED for s in states):
             rec.verdict = Verdict.BLOCKED
             rec.reason = "все попытки краула заблокированы — Ур.4 FireCrawl платно ИЛИ Ур.5 человек"
+        elif rec.level_results.get("0.5", {}).get("status") == "UNCERTAIN":
+            rec.verdict = Verdict.UNCERTAIN
+            rec.reason = "OpenAlex UNCERTAIN (языковой барьер) — проверить через lite-фетчер или вручную"
         else:
             rec.verdict = Verdict.UNCERTAIN
             rec.reason = "требуется researcher-web, Ур.1"

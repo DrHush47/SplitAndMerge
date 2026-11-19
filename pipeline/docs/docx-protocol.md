@@ -197,6 +197,7 @@ print(f"Параграфов: {len(doc2.paragraphs)}, Таблиц: {len(doc2.ta
 | Аудит структуры перед правками | `docx-master` | `overview` (стили, сиротные схемы нумерации, фингерпринты) + `inspect_blockers` |
 | Валидация результата | `docx-master` | `validate.js` — schema-aware OOXML-проверка (baseline-diff: фатальны только новые ошибки) |
 | Длинные вставки (TEXT-N фрагменты) | `hush-docx` | `doc.add_paragraph(TEXT_N)` — без shell-escape |
+| Табличные бланки и пагинация | `hush-docx` / `docx_orchestrator.py` | `set_table_col_widths()` (`fixed` + `tblGrid`), `set_row_cant_split()`, `set_row_header()`, `keep_with_next=True` на секционных строках |
 | Создание нового документа с нуля | `hush-docx` | Циклы, шаблоны |
 | TOC, watermark (резерв) | OfficeCLI (резерв) | Только если установлен; TOC-поле вставить умеет и `docx-cli` (`edit toc`) |
 
@@ -397,6 +398,14 @@ with zipfile.ZipFile("результат.docx") as z:
 ```
 
 Если файл открывается и ключевые метрики совпадают — задача выполнена.
+
+### 7.1 Опциональный PDF page-break контроль (Этап 8 — для бланков и таблиц)
+
+Для многостраничных таблиц, представлений и официальных бланков полезно дополнительно прогнать экспорт `.docx → PDF` через `check_pdf_page_breaks()` из [`../templates/docx_orchestrator.py`](../templates/docx_orchestrator.py) (использует локальный MS Word COM при наличии `pywin32` либо `soffice --headless`, затем читает страницы через `pypdf` из профиля `lite`):
+- ловит **оторвавшиеся подписи** (последняя страница <150 символов),
+- ловит **висячие заголовки разделов** внизу страницы (лечится `keep_with_next=True`),
+- ловит **разрыв слов в узких колонках шапки таблицы** (лечится расширением столбца в `set_table_col_widths()`).
+Если Word COM и LibreOffice недоступны — функция мягко печатает `SKIP` и не блокирует сдачу.
 
 ---
 

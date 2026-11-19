@@ -10,8 +10,8 @@ Usage:
 
 import re
 from docx.shared import Pt, Mm, Cm
-from docx.oxml.ns import qn
-from docx.oxml import OxmlElement
+from docx.oxml.ns import qn, nsdecls
+from docx.oxml import OxmlElement, parse_xml
 
 
 # ── R5-compatible: font that survives Cyrillic ──────────────────────────────
@@ -242,3 +242,110 @@ def remove_trailing_empty_paragraphs(doc, keep_max=1):
 
     print(f"  OK: removed {len(to_remove)} trailing empty paragraphs (kept {keep_count})")
     return len(to_remove)
+
+
+# ── Table layout helpers (cantSplit / tblHeader / fixed widths) ─────────────
+
+def set_row_cant_split(row):
+    """Prevent a table row from splitting across a page break (w:cantSplit)."""
+    trPr = row._tr.get_or_add_trPr()
+    if trPr.find(qn('w:cantSplit')) is None:
+        trPr.append(OxmlElement('w:cantSplit'))
+
+
+def set_row_header(row):
+    """Repeat a table header row at the top of each new page (w:tblHeader)."""
+    trPr = row._tr.get_or_add_trPr()
+    if trPr.find(qn('w:tblHeader')) is None:
+        trPr.append(OxmlElement('w:tblHeader'))
+
+
+def set_table_col_widths(table, widths_mm):
+    """Set fixed column widths in mm via w:tblLayout=fixed + w:tblGrid (gridSpan-safe)."""
+    table.autofit = False
+    tblPr = table._tbl.tblPr
+    old_layout = tblPr.find(qn('w:tblLayout'))
+    if old_layout is not None:
+        tblPr.remove(old_layout)
+    tblPr.append(parse_xml(f'<w:tblLayout {nsdecls("w")} w:type="fixed"/>'))
+
+    old_grid = table._tbl.find(qn('w:tblGrid'))
+    if old_grid is not None:
+        table._tbl.remove(old_grid)
+    new_grid = OxmlElement('w:tblGrid')
+    for w in widths_mm:
+        gc = OxmlElement('w:gridCol')
+        gc.set(qn('w:w'), str(int(round(w * 56.6929))))
+        new_grid.append(gc)
+    tblPr.addnext(new_grid)
+
+    for row in table.rows:
+        for ci, cell in enumerate(row.cells):
+            if ci >= len(widths_mm):
+                continue
+            tcPr = cell._tc.get_or_add_tcPr()
+            grid_span = tcPr.find(qn('w:gridSpan'))
+            if grid_span is not None and int(grid_span.get(qn('w:val'), '1')) > 1:
+                continue
+            w_mm = widths_mm[ci]
+            cell.width = Mm(w_mm)
+            tcW = tcPr.find(qn('w:tcW'))
+            if tcW is None:
+                tcW = OxmlElement('w:tcW')
+                tcPr.append(tcW)
+            tcW.set(qn('w:w'), str(int(round(w_mm * 56.6929))))
+            tcW.set(qn('w:type'), 'dxa')
+
+
+def check_pdf_page_breaks(docx_path, out_pdf_dir=None, orphan_chars=150):
+    """Optional Stage 8 layout check: export .docx -> PDF (Word COM or LibreOffice) and inspect pages via pypdf."""
+    from pathlib import Path
+    import subprocess
+    import shutil
+
+    src = Path(docx_path).resolve()
+    pdf_dir = Path(out_pdf_dir).resolve() if out_pdf_dir else src.parent / "_pdf_check"
+    pdf_dir.mkdir(parents=True, exist_ok=True)
+    pdf_path = pdf_dir / (src.stem + ".pdf")
+
+    exported = False
+    try:
+        import win32com.client  # type: ignore
+        word = win32com.client.Dispatch("Word.Application")
+        word.Visible = False
+        word.DisplayAlerts = 0
+        try:
+            d = word.Documents.Open(str(src), ReadOnly=True)
+            d.SaveAs2(str(pdf_path), FileFormat=17)
+            d.Close(False)
+            exported = pdf_path.is_file()
+        finally:
+            word.Quit()
+    except Exception:
+        soffice = shutil.which("soffice") or shutil.which("libreoffice")
+        if soffice:
+            subprocess.run(
+                [soffice, "--headless", "--convert-to", "pdf", "--outdir", str(pdf_dir), str(src)],
+                check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60,
+            )
+            exported = pdf_path.is_file()
+
+    if not exported:
+        print(f"  SKIP PDF check ({src.name}): neither Word COM (pywin32) nor LibreOffice found")
+        return None
+
+    try:
+        import pypdf
+    except ImportError:
+        print(f"  SKIP PDF check ({pdf_path.name}): pypdf not installed")
+        return None
+
+    reader = pypdf.PdfReader(str(pdf_path))
+    pages_info = []
+    for idx, page in enumerate(reader.pages, start=1):
+        txt = re.sub(r'\s+', ' ', (page.extract_text() or '')).strip()
+        pages_info.append({"page": idx, "chars": len(txt), "start": txt[:80], "end": txt[-80:]})
+        print(f"  Page {idx} ({len(txt)} chars): {txt[:60]!r} ... {txt[-60:]!r}")
+    if len(pages_info) > 1 and pages_info[-1]["chars"] < orphan_chars:
+        print(f"  WARN: last page {len(pages_info)} has only {pages_info[-1]['chars']} chars — likely orphan signature/row")
+    return pages_info

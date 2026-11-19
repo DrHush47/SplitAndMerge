@@ -37,8 +37,9 @@ python -m venv .venv
 
 # 3. Заполнить pipeline/targets.json ссылками для проверки
 # 4. Запустить лёгкую верификацию (артефакты пишутся в workspace/)
-sam --targets pipeline/targets.json --levels 0.5                         # Ур.0.5 OpenAlex (DOI)
+sam --targets pipeline/targets.json --levels 0.5                         # Ур.0.5 OpenAlex (DOI, с поддержкой RU↔EN)
 .venv/Scripts/python.exe pipeline/biomed/factcheck_biomed.py --targets pipeline/targets.json --prefix bm --timeout 15  # Ур.0.7 BioMed (PMID/PMC)
+.venv/Scripts/python.exe pipeline/lite/fetch_lite.py --targets pipeline/targets.json --prefix lite --timeout 15        # Лёгкий HTTP/meta/PDF-фетчер (без браузеров)
 ```
 
 > Для Linux/Mac заменить `Scripts` на `bin`, а `python` на `python3` в путях к Python.
@@ -168,6 +169,9 @@ git pull origin main
     ├── scrapling/                    ← Ур.3 — обход Cloudflare
     │   ├── factcheck_scrapling.py    ← Скрипт: Scrapling StealthySession
     │   └── scrapling.md              ← Референс команд
+    │
+    ├── lite/                         ← Лёгкий HTTP/meta/PDF-фетчер (без браузеров)
+    │   └── fetch_lite.py             ← Скрипт: urllib + BeautifulSoup + pypdf (citation_*, HTML, PDF)
     │
     ├── manual/                       ← Лёгкий профиль (без браузеров) и ручной трек (Ур.1→Ур.5)
     │   ├── factcheck_manual.py       ← Сканер ручных источников (stdlib-only)

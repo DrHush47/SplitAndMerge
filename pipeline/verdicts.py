@@ -94,6 +94,7 @@ def classify_retrieval(text, error=None):
 _OPENALEX_TO_VERDICT = {
     "CONFIRMED": Verdict.CONFIRMED,
     "MISMATCH": Verdict.REFUTED,
+    "UNCERTAIN": Verdict.UNCERTAIN,
     "ERROR": Verdict.UNCERTAIN,
     "SKIP": Verdict.UNCERTAIN,
 }

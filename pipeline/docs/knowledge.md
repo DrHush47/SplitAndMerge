@@ -24,6 +24,7 @@
 - **Корневой venv:** `.venv/Scripts/python.exe` (Windows) или `.venv/bin/python` (Linux/Mac). Относительно корня проекта. **НИКОГДА не искать python глобально — всегда использовать корневой .venv.**
 - **Запуск OpenAlex (Ур.0.5):** `.venv/Scripts/python.exe pipeline/openalex/factcheck_openalex.py --targets pipeline/targets.json --prefix oa --timeout 15`
 - **Запуск BioMed Deep Check (Ур.0.7):** `.venv/Scripts/python.exe pipeline/biomed/factcheck_biomed.py --targets pipeline/targets.json --prefix bm --timeout 15`
+- **Лёгкий HTTP/meta/PDF-фетчер (профиль `lite`, без браузеров):** `.venv/Scripts/python.exe pipeline/lite/fetch_lite.py --targets pipeline/targets.json --prefix lite --timeout 15` (или `--url "https://..."` — извлекает `citation_*`/`DC.*` метатеги, HTML и PDF до запуска тяжёлых краулеров)
 - **Запуск Crawl4AI (Ур.2):** `.venv/Scripts/python.exe pipeline/crawl4ai/factcheck_crawl4ai.py --targets pipeline/targets.json --prefix <prefix> --timeout 45`
 - **Запуск Scrapling (Ур.3):** `.venv/Scripts/python.exe pipeline/scrapling/factcheck_scrapling.py --targets pipeline/targets.json --prefix sc --timeout 90`
 - **Выходные файлы (все уровни):** `workspace/{prefix}_{id}.txt` — OpenAlex (`oa_*`), BioMed (`bm_*`), Crawl4AI (`crawl_*`), Scrapling (`sc_*`); FireCrawl — `workspace/firecrawl_<name>.md` через `-o workspace/firecrawl_<name>.md`. Директория `workspace/` — в корне репо, вне git. **НЕ создавай других каталогов для артефактов.**

@@ -13,7 +13,11 @@
 
 import pytest
 
-from pipeline.openalex.factcheck_openalex import check_fact_match, get_first_author_surname
+from pipeline.openalex.factcheck_openalex import (
+    check_fact_match,
+    classify_fact_match,
+    get_first_author_surname,
+)
 
 
 def oa_data(title="", authors=()):
@@ -238,3 +242,68 @@ def test_surname_empty_without_authors():
 def test_surname_empty_without_display_name():
     data = {"title": "x", "authorships": [{"author": {}}]}
     assert get_first_author_surname(data) == ""
+
+
+# --- двуязычные проверки RU ↔ EN (перенесённые из Ур.0.7 BioMed) ---
+
+def test_cyrillic_author_translit_confirmed():
+    """Кириллическая цитата российской статьи (OpenAlex отдаёт EN-название и лат. авторов)."""
+    data = oa_data(
+        title="Quantitative determination of monoamine neurotransmitters in rat brain homogenates using HPLC-MS/MS",
+        authors=("Nikita S. Popov", "S. A. Donskov"),
+    )
+    fact = "Попов Н.С., Донсков С.А. Количественное определение моноаминовых нейротрансмиттеров в мозге крыс"
+    status, detail = classify_fact_match(fact, data)
+    assert status == "CONFIRMED"
+    assert "author 'Popov' found in fact (translit)" in detail
+    is_match, _ = check_fact_match(fact, data)
+    assert is_match is True
+
+
+def test_cyrillic_coauthor_translit_confirmed():
+    """Если фамилия первого автора транслитерирована нестандартно, соавтор всё равно подтверждает."""
+    data = oa_data(
+        title="Cytopathological characteristics for provoked lesions of squamous epithelia of digestive system",
+        authors=("Valeria Schestakova", "S. A. Donskov"),
+    )
+    fact = "Шестакова В.Г., Донсков С.А. Морфологическая характеристика эпителия пищеварительного тракта"
+    status, detail = classify_fact_match(fact, data)
+    assert status == "CONFIRMED"
+    assert "co-author 'Donskov' found in fact (translit)" in detail
+
+
+def test_cyrillic_cognates_title_match_confirmed():
+    """Даже при отсутствии автора совпадение медицинских корней подтверждает статью."""
+    data = oa_data(
+        title="Morphological changes in periodontal tissues under reprogramming macrophages",
+        authors=("V. Rumiantsev",),
+    )
+    fact = "Морфологические изменения в тканях пародонта при репрограммировании макрофагов"
+    status, detail = classify_fact_match(fact, data)
+    assert status == "CONFIRMED"
+    assert "title overlap" in detail
+
+
+def test_cyrillic_language_barrier_returns_uncertain_not_mismatch():
+    """При языковом барьере без совпадения фамилий/корней — UNCERTAIN, а не ложный MISMATCH."""
+    data = oa_data(
+        title="Novel randomized double-blind evaluation of therapeutic efficacy",
+        authors=("A. Schetina",),
+    )
+    fact = "Щетина Р.Г. — Новая оценка эффективности применения подхода"
+    status, detail = classify_fact_match(fact, data)
+    assert status == "UNCERTAIN"
+    assert "language barrier" in detail
+    is_match, _ = check_fact_match(fact, data)
+    assert is_match is False
+
+
+def test_latin_unrelated_still_returns_mismatch():
+    """В одном алфавите (EN vs EN) при расхождении по-прежнему жёсткий MISMATCH."""
+    data = oa_data(
+        title="Deep learning for pediatric chest radiographs",
+        authors=("Eric Topol",),
+    )
+    fact = "Smith J. — Quantum dots in semiconductor physics"
+    status, _ = classify_fact_match(fact, data)
+    assert status == "MISMATCH"

@@ -25,7 +25,7 @@
 | **Общая архитектура и этапы** | [`pipeline/docs/architecture.md`](pipeline/docs/architecture.md) | 5 ролей, 10 этапов split-and-merge |
 | **Схема и уровни фактчекинга** | [`pipeline/docs/cascade.md`](pipeline/docs/cascade.md) | `sam` / `pipeline/sam.py`, вердикты в `pipeline/verdicts.py` |
 | **Команды и техконстанты каскада** | [`pipeline/docs/knowledge.md`](pipeline/docs/knowledge.md) | `factcheck_openalex.py` (0.5), `crawl4ai` (2), `scrapling` (3), `firecrawl` (4) |
-| **Лёгкий профиль и ручной трек** | [`pipeline/manual/manual.md`](pipeline/manual/manual.md) | `pipeline/requirements-lite.txt` (`lite`, ~16,5 МБ, без браузеров) + `factcheck_manual.py` (Ур. 1 → Ур. 5) |
+| **Лёгкий профиль и ручной трек** | [`pipeline/manual/manual.md`](pipeline/manual/manual.md) | `pipeline/requirements-lite.txt` (`lite`, ~16,5 МБ) + `pipeline/lite/fetch_lite.py` + `factcheck_manual.py` |
 | **Биомедицинский фактчекинг** | [`pipeline/docs/biomed-protocol.md`](pipeline/docs/biomed-protocol.md) | `pipeline/biomed/factcheck_biomed.py` (Ур. 0.7) + навыки в `.agents/skills/` |
 | **Правка и генерация `.docx`** | [`pipeline/docs/docx-protocol.md`](pipeline/docs/docx-protocol.md) | `python-docx`, шаблон [`pipeline/templates/docx_orchestrator.py`](pipeline/templates/docx_orchestrator.py), навык `hush-docx` |
 | **Сборка презентаций `.pptx`** | [`pipeline/docs/presentation-protocol.md`](pipeline/docs/presentation-protocol.md) | `python-pptx`, триада доклада, `fit_in_box`, экспорт 1080p |
