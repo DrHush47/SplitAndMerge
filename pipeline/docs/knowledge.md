@@ -34,9 +34,10 @@
 - **Полный референс команд FireCrawl:** см. [`firecrawl.md`](../firecrawl/firecrawl.md)
 - **Папка `workspace/`:** Создаётся скриптами на лету (`parents=True, exist_ok=True`), отдельных холостых проверок не требует. Размещение материалов и процедурных скриптов сессии — по стандарту Session Workspace Containment ([`architecture.md`](architecture.md) § Принцип 8).
 - **Очистка `workspace/`:** Только по явному качественному подтверждению пользователя («чисти», «готово», «принято»). Без подтверждения содержимое сохраняется.
-- **python-docx:** устанавливается через `pip install python-docx`. Использует стандартный Python (или корневой .venv, если python-docx установлен там).
-- **Презентации (.pptx):** `python-pptx` и `pillow` устанавливаются через `pip install -r pipeline/requirements.txt` или `pip install -e ".[pptx]"`. Канонический протокол — [`presentation-protocol.md`](presentation-protocol.md).
-- **Биомедицинский модуль:** `polite-http` и `python-dotenv` устанавливаются через `pip install -r pipeline/requirements.txt` или `pip install -e ".[biomed]"`. 10 канонических навыков — в `.agents/skills/`. Канонический протокол — [`biomed-protocol.md`](biomed-protocol.md).
+- **Лёгкий профиль `lite` (по умолчанию, ~16,5 МБ, без браузеров):** `pip install -e ".[lite]"` или `pip install -r pipeline/requirements-lite.txt` (`python-docx`, `beautifulsoup4`, `pypdf`, `polite-http`, `python-dotenv`; закрывает ~95% задач, включая `.docx`, PDF/HTML, Ур.0.5 OpenAlex, Ур.0.7 BioMed, биомед-навыки и `manual`).
+- **Правило доустановки тяжёлых пакетов:** перед установкой `[web]` (`crawl4ai`, `scrapling[all]`, Playwright/Chromium ~1,5 ГБ), `[pptx]` (`python-pptx`, `pillow`, +18 МБ) или `[win-office]` (`pywin32`, +19,5 МБ) агент **обязан запросить подтверждение пользователя** (см. [`../../AGENTS.md`](../../AGENTS.md)).
+- **Презентации (.pptx):** `python-pptx` и `pillow` устанавливаются через `pip install -e ".[lite,pptx]"` (или полный `pipeline/requirements.txt`). Канонический протокол — [`presentation-protocol.md`](presentation-protocol.md).
+- **Биомедицинский модуль:** `polite-http` и `python-dotenv` уже входят в `lite` (`pip install -e ".[lite]"` или `.[biomed]`). 10 канонических навыков — в `.agents/skills/`. Канонический протокол — [`biomed-protocol.md`](biomed-protocol.md).
 
 ### 0.2 OpenAlex — детали уровня
 
@@ -63,9 +64,9 @@
 
 ---
 
-### 0.6 Быстрый режим без зависимостей
+### 0.6 Лёгкий профиль `lite` (без браузеров) и ручной трек
 
-> Workflow, конвенция имён, команды, дефект DOI-сверки — только в [`../manual/manual.md`](../manual/manual.md), здесь не дублируются.
+> Состав лёгкого пакета — [`../requirements-lite.txt`](../requirements-lite.txt) и [`../../pyproject.toml`](../../pyproject.toml). Workflow без браузеров, конвенция имён, команды, дефект DOI-сверки — только в [`../manual/manual.md`](../manual/manual.md), здесь не дублируются.
 
 ---
 

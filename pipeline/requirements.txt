@@ -1,10 +1,14 @@
-# Pipeline — каскад фактчекинга + редактура .docx + презентации .pptx + биомед
-# Установка: .venv/Scripts/python.exe -m pip install -r pipeline/requirements.txt
+# Полный профиль Pipeline (~1,56 ГБ с браузерами Playwright/Chromium).
+# Включает лёгкий профиль (requirements-lite.txt) + тяжёлые браузерные краулеры + презентации .pptx.
+# Для ~95% задач достаточно лёгкого профиля: pipeline/requirements-lite.txt (~16,5 МБ).
+#
+# Установка полного профиля (доустанавливать только при необходимости и с подтверждения пользователя):
+#   .venv/Scripts/python.exe -m pip install -r pipeline/requirements.txt   # Windows
+#   .venv/bin/python -m pip install -r pipeline/requirements.txt           # Linux/Mac
+
+-r requirements-lite.txt
 
 crawl4ai>=0.5.0
 scrapling[all]>=0.4.11
-python-docx>=1.0.0
 python-pptx>=1.0.0
 pillow>=10.0.0
-polite-http>=0.1.3
-python-dotenv>=1.0.0

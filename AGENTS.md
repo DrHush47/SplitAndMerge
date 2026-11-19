@@ -8,6 +8,7 @@
 ## 1. Базовые правила и среда (Guardrails)
 
 - **Python / Venv:** всегда запускать через `.venv/Scripts/python.exe` (Windows) или `.venv/bin/python` (Linux/Mac).
+- **Лёгкий профиль по умолчанию и подтверждение доустановки:** штатная рабочая база проекта — **лёгкий профиль `lite`** ([`pipeline/requirements-lite.txt`](pipeline/requirements-lite.txt) / `pip install -e ".[lite]"`, ~16,5 МБ, без браузеров; закрывает ~95% задач). Перед доустановкой **любых** дополнительных пакетов сверх установленного профиля (тяжёлые браузерные краулеры `[web]` ~1,5 ГБ, `[pptx]` ~18 МБ, `[win-office]` / `pywin32` ~19,5 МБ или сторонние библиотеки) агент **обязан явно запросить подтверждение пользователя**, указав: (1) точный список пакетов, (2) зачем они нужны в текущей задаче и (3) ориентировочный объём загрузки. Самовольная установка пакетов без согласия пользователя запрещена.
 - **Кодировка (Windows):** в начале каждого Python-скрипта принудительно ставить UTF-8 на `stdout`/`stderr` (`sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')`), чтобы не падать на `cp1251`.
 - **Изоляция артефактов:** все рабочие файлы, выгрузки, черновики и результаты сессий создавать и хранить **строго внутри `workspace/<подпапка>/`** (вне git). Корень проекта не засорять.
 - **Нулевая толерантность к галлюцинациям:** категорически запрещено выдумывать библиографические ссылки, DOI, фамилии авторов, численные данные или синтетические URL. Работа только по верифицированному сырью.
@@ -24,7 +25,7 @@
 | **Общая архитектура и этапы** | [`pipeline/docs/architecture.md`](pipeline/docs/architecture.md) | 5 ролей, 10 этапов split-and-merge |
 | **Схема и уровни фактчекинга** | [`pipeline/docs/cascade.md`](pipeline/docs/cascade.md) | `sam` / `pipeline/sam.py`, вердикты в `pipeline/verdicts.py` |
 | **Команды и техконстанты каскада** | [`pipeline/docs/knowledge.md`](pipeline/docs/knowledge.md) | `factcheck_openalex.py` (0.5), `crawl4ai` (2), `scrapling` (3), `firecrawl` (4) |
-| **Быстрый фактчекинг (stdlib)** | [`pipeline/manual/manual.md`](pipeline/manual/manual.md) | `pipeline/manual/factcheck_manual.py` (Ур. 1 → Ур. 5 без зависимостей) |
+| **Лёгкий профиль и ручной трек** | [`pipeline/manual/manual.md`](pipeline/manual/manual.md) | `pipeline/requirements-lite.txt` (`lite`, ~16,5 МБ, без браузеров) + `factcheck_manual.py` (Ур. 1 → Ур. 5) |
 | **Биомедицинский фактчекинг** | [`pipeline/docs/biomed-protocol.md`](pipeline/docs/biomed-protocol.md) | `pipeline/biomed/factcheck_biomed.py` (Ур. 0.7) + навыки в `.agents/skills/` |
 | **Правка и генерация `.docx`** | [`pipeline/docs/docx-protocol.md`](pipeline/docs/docx-protocol.md) | `python-docx`, шаблон [`pipeline/templates/docx_orchestrator.py`](pipeline/templates/docx_orchestrator.py), навык `hush-docx` |
 | **Сборка презентаций `.pptx`** | [`pipeline/docs/presentation-protocol.md`](pipeline/docs/presentation-protocol.md) | `python-pptx`, триада доклада, `fit_in_box`, экспорт 1080p |

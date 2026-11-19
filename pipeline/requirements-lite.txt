@@ -1,0 +1,22 @@
+# Лёгкий профиль Split & Merge (lite, ~16,5 МБ, без браузеров и тяжёлых краулеров).
+# Покрывает ~95% задач:
+#   - Ур. 0.5 OpenAlex и Ур. 0.7 BioMed Deep Check (работают на stdlib Python — 0 МБ)
+#   - Прямой HTTP/HTML/PDF-парсинг открытых сайтов, журналов и сборников (beautifulsoup4 + pypdf)
+#   - Правка и генерация документов .docx (python-docx)
+#   - Автономные биомедицинские навыки (polite-http + python-dotenv)
+#   - Ручной трек фактчекинга (factcheck_manual.py с поддержкой PDF)
+#
+# Установка (рекомендуется для быстрого старта):
+#   .venv/Scripts/python.exe -m pip install -r pipeline/requirements-lite.txt   # Windows
+#   .venv/bin/python -m pip install -r pipeline/requirements-lite.txt           # Linux/Mac
+#
+# Опциональная доустановка (ТОЛЬКО с явного подтверждения пользователя):
+#   - Windows MS Word COM (.doc → .docx и PDF-проверка вёрстки, +19,5 МБ): pip install "pywin32>=306"
+#   - Презентации .pptx (+18 МБ): pip install -e ".[pptx]"
+#   - Тяжёлые браузерные краулеры Crawl4AI/Scrapling (~1,5 ГБ): pip install -r pipeline/requirements.txt
+
+python-docx>=1.0.0
+beautifulsoup4>=4.12.0
+pypdf>=4.0.0
+polite-http>=0.1.3
+python-dotenv>=1.0.0

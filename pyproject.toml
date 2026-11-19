@@ -5,11 +5,22 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "splitandmerge"
 version = "0.2.0"
-description = "Конвейер редактуры научных текстов и каскадный веб-фактчекинг (OpenAlex → Crawl4AI → Scrapling → FireCrawl → человек → Gemini DeepSearch)."
+description = "Конвейер редактуры научных текстов и каскадный веб-фактчекинг (OpenAlex → BioMed → лёгкий профиль lite / Crawl4AI → Scrapling → FireCrawl → человек → Gemini DeepSearch)."
 readme = "README.md"
 requires-python = ">=3.10"
 
 [project.optional-dependencies]
+# Лёгкий профиль (~16,5 МБ, без браузеров — закрывает ~95% задач; синхронизирован с pipeline/requirements-lite.txt)
+lite = [
+  "python-docx>=1.0.0",
+  "beautifulsoup4>=4.12.0",
+  "pypdf>=4.0.0",
+  "polite-http>=0.1.3",
+  "python-dotenv>=1.0.0",
+]
+# Опционально для Windows: конвертация старых .doc и PDF-проверка вёрстки через локальный MS Word (+19,5 МБ)
+win-office = ["pywin32>=306; sys_platform == 'win32'"]
+# Тяжёлые браузерные краулеры (~1,5 ГБ с Playwright/Chromium — ставить только с подтверждения пользователя)
 web = ["crawl4ai>=0.5.0", "scrapling[all]>=0.4.11"]
 docx = ["python-docx>=1.0.0"]
 pptx = ["python-pptx>=1.0.0", "pillow>=10.0.0"]

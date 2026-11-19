@@ -19,55 +19,56 @@
 
 **7 уровней фактчекинга** — схема, эскалация, вердикты только в [`pipeline/docs/cascade.md`](pipeline/docs/cascade.md): ~95% проверок закрываются на бесплатных уровнях.
 
-## Быстрый старт
+## Быстрый старт (лёгкий профиль `lite`, ~16,5 МБ)
+
+> **Рекомендуемый путь для ~95% задач:** лёгкий профиль `lite` ставится за 5–10 секунд, не тянет тяжёлые браузеры (`Playwright`/`Chromium`) и включает всё нужное для редактуры `.docx`, чтения PDF/HTML, OpenAlex (Ур.0.5), BioMed Deep Check (Ур.0.7), биомед-навыков и ручного трека `manual`.
+> Состав профиля зафиксирован в [`pipeline/requirements-lite.txt`](pipeline/requirements-lite.txt) и [`pyproject.toml`](pyproject.toml) (`python-docx`, `beautifulsoup4`, `pypdf`, `polite-http`, `python-dotenv`; сами скрипты `factcheck_openalex.py`, `factcheck_biomed.py` и `factcheck_manual.py` работают на стандартной библиотеке Python — **0 МБ**).
+
 ```bash
-# 1. Настроить MCP-конфиг
+# 1. Настроить MCP-конфиг (при необходимости)
 cp .agents/mcp.json.example .agents/mcp.json
 
-# 2. Создать venv в КОРНЕ проекта и установить зависимости
+# 2. Создать venv в КОРНЕ проекта и поставить лёгкий профиль (~16,5 МБ)
 python -m venv .venv
-.venv/Scripts/python.exe -m pip install -r pipeline/requirements.txt      # Windows
-# .venv/bin/python -m pip install -r pipeline/requirements.txt            # Linux/Mac
+.venv/Scripts/python.exe -m pip install -e ".[lite]"                     # Windows (рекомендуется, регистрирует команду `sam`)
+# .venv/bin/python -m pip install -e ".[lite]"                           # Linux/Mac
+# Альтернатива без editable-пакета:
+# .venv/Scripts/python.exe -m pip install -r pipeline/requirements-lite.txt
 
 # 3. Заполнить pipeline/targets.json ссылками для проверки
-# 4. Запустить каскад фактчекинга (артефакты пишутся в workspace/)
-
-.venv/Scripts/python.exe pipeline/openalex/factcheck_openalex.py --targets pipeline/targets.json --prefix oa --timeout 15
-.venv/Scripts/python.exe pipeline/crawl4ai/factcheck_crawl4ai.py --targets pipeline/targets.json --prefix crawl --timeout 45
-.venv/Scripts/python.exe pipeline/scrapling/factcheck_scrapling.py --targets pipeline/targets.json --prefix sc --timeout 90
-firecrawl scrape 'https://...' -o workspace/firecrawl_<name>.md
-
-# 5. (или) Авторежим — весь каскад одной командой (вместо ручного п.4):
-.venv/Scripts/python.exe pipeline/sam.py --targets pipeline/targets.json
-# .venv/bin/python pipeline/sam.py --targets pipeline/targets.json            # Linux/Mac
-# Результат: workspace/sam_verdicts.json (вердикты по каждой цели) + workspace/sam_report.md
+# 4. Запустить лёгкую верификацию (артефакты пишутся в workspace/)
+sam --targets pipeline/targets.json --levels 0.5                         # Ур.0.5 OpenAlex (DOI)
+.venv/Scripts/python.exe pipeline/biomed/factcheck_biomed.py --targets pipeline/targets.json --prefix bm --timeout 15  # Ур.0.7 BioMed (PMID/PMC)
 ```
+
 > Для Linux/Mac заменить `Scripts` на `bin`, а `python` на `python3` в путях к Python.
-(При необходимости укажите `--out-dir`, чтобы записать результаты в другой каталог.)
+> Без установки пакета `sam` заменяется на `.venv/Scripts/python.exe pipeline/sam.py` (с `--out-dir` для другого каталога).
 
 Коды выхода `sam.py`: `0` — нет REFUTED; `1` — есть REFUTED; `2` — ошибка конфигурации. Правила эскалации и handoff-уровни — только в [`pipeline/docs/cascade.md`](pipeline/docs/cascade.md). Для работы фазы 3 (Scrapling) всегда включайте уровень 2 в `--levels` (иначе фазе 3 не из чего эскалироваться).
 
-### Быстрый режим фактчекинга (без зависимостей)
+### Расширенная установка (опционально, по запросу)
 
-> Workflow, конвенция имён, дефект DOI-сверки — только в [`pipeline/manual/manual.md`](pipeline/manual/manual.md), здесь не дублируются.
-
-### Установка и команда `sam` (рекомендуемый способ)
+> **Правило для ИИ-агентов (см. [`AGENTS.md`](AGENTS.md)):** перед доустановкой **любых** пакетов сверх `lite` (особенно тяжёлого `[web]` ~1,5 ГБ) агент обязан запросить явное подтверждение пользователя с указанием списка пакетов, цели и ориентировочного объёма загрузки.
 
 ```bash
-# 1. Установить пакет в venv (базовая установка — лёгкая, без тяжёлых зависимостей)
-.venv/Scripts/python.exe -m pip install -e .
-# .venv/bin/python -m pip install -e .                                # Linux/Mac
+# Windows MS Word COM (.doc → .docx и PDF-проверка вёрстки, +19,5 МБ):
+.venv/Scripts/python.exe -m pip install -e ".[lite,win-office]"
 
-# 2. Полный набор (веб-краулеры + python-docx + презентации .pptx) — если нужен весь конвейер:
-# .venv/Scripts/python.exe -m pip install -e ".[web,docx,pptx]"
+# Сборка презентаций .pptx (+18 МБ):
+.venv/Scripts/python.exe -m pip install -e ".[lite,pptx]"
 
-# 3. Запуск авто-каскада одной командой:
+# Полный профиль с браузерными краулерами Crawl4AI + Scrapling (~1,56 ГБ с Playwright/Chromium — только для обхода Cloudflare / JS-SPA):
+.venv/Scripts/python.exe -m pip install -e ".[lite,web,pptx]"
+# или через requirements:
+# .venv/Scripts/python.exe -m pip install -r pipeline/requirements.txt
+
+# Авто-каскад с браузерными уровнями 2–3 (после установки `[web]`):
 sam --targets pipeline/targets.json --out-dir workspace --levels 0.5,2,3
 ```
 
-Команда `sam` устанавливается в venv и доступна из любого каталога. Запуск через
-`python pipeline/sam.py` (см. «Быстрый старт», п. 5) — равноправная альтернатива
-без установки пакета.
+### Лёгкий профиль и ручной трек (Ур.0.5 / Ур.0.7 + Ур.1 → Ур.5)
+
+> Workflow без браузерных краулеров, конвенция имён, дефект DOI-сверки — только в [`pipeline/manual/manual.md`](pipeline/manual/manual.md), здесь не дублируются.
 
 ### Обновление локального репозитория (для агентов и пользователей)
 
@@ -75,12 +76,12 @@ sam --targets pipeline/targets.json --out-dir workspace --levels 0.5,2,3
 ```bash
 git pull origin main
 
-# Обновить/доустановить зависимости (модуль презентаций .pptx: python-pptx, pillow):
-.venv/Scripts/python.exe -m pip install -r pipeline/requirements.txt      # Windows
-# .venv/bin/python -m pip install -r pipeline/requirements.txt            # Linux/Mac
+# Обновить лёгкий профиль (по умолчанию, ~16,5 МБ):
+.venv/Scripts/python.exe -m pip install -e ".[lite]"                     # Windows
+# .venv/bin/python -m pip install -e ".[lite]"                           # Linux/Mac
 
-# Или обновить локальный editable-пакет со всеми расширениями:
-.venv/Scripts/python.exe -m pip install -e ".[web,docx,pptx,biomed]"
+# Только если у вас уже установлен полный профиль (с тяжёлыми краулерами ~1,56 ГБ):
+# .venv/Scripts/python.exe -m pip install -e ".[lite,web,pptx]"
 ```
 
 ## Документация
@@ -95,7 +96,7 @@ git pull origin main
 | [`docs/biomed-protocol.md`](pipeline/docs/biomed-protocol.md) | Протокол биомедицинского модуля и Ур.0.7 (BioMed Deep Check) — PubMed, Europe PMC, HPA, ClinicalTrials |
 | [`docs/research-skills.md`](pipeline/docs/research-skills.md) | Канон 5 исследовательских навыков (deep-research, litreview, deepread, research, research-summarizer) — карта по ролям/этапам, границы, команды скриптов |
 | [`docs/llm.md`](pipeline/docs/llm.md) | Полное руководство по prompt engineering — техники, шаблоны, безопасность (Anthropic, OpenAI, Google, Meta, OWASP). **Рекомендован рецензенту и (со-)оркестратору для удобного написания промптов** |
-| [`pipeline/manual/manual.md`](pipeline/manual/manual.md) | Быстрый режим фактчекинга без зависимостей — workflow, конвенция имён, референс сканера |
+| [`pipeline/manual/manual.md`](pipeline/manual/manual.md) | Лёгкий профиль `lite` (без браузеров) и ручной трек (Ур.1→Ур.5) — состав, workflow, конвенция имён, референс сканера |
 | [`prompts/`](pipeline/prompts/) | Готовые шаблоны промптов для ролей конвейера — 5 заготовок (reviewer, textwriter, tech-executor, factchecker, co-orchestrator). Для роли текстовика оптимален [Writing Editor (Gemini Gem)](https://gemini.google.com/gem/writing-editor) (при наличии токенов — связка GemBot → Claude; см. [`prompts/textwriter.md`](pipeline/prompts/textwriter.md) § Первоисточники) |
 
 ### Карта чтения
@@ -133,7 +134,8 @@ git pull origin main
     │                                    чтение targets.json)
     ├── sam.py                        ← Главный скрипт: авто-каскад
     ├── verdicts.py                   ← Вердикты и evidence-states
-    ├── requirements.txt              ← Python-зависимости
+    ├── requirements-lite.txt         ← Лёгкий профиль lite (~16,5 МБ, без браузеров, ~95% задач)
+    ├── requirements.txt              ← Полный профиль (~1,56 ГБ с браузерными краулерами и .pptx)
     ├── targets.json                  ← Цели для проверки (заполняется
     │                                    перед запуском)
 
@@ -167,7 +169,7 @@ git pull origin main
     │   ├── factcheck_scrapling.py    ← Скрипт: Scrapling StealthySession
     │   └── scrapling.md              ← Референс команд
     │
-    ├── manual/                       ← Быстрый режим (Ур.1→Ур.5) — без зависимостей
+    ├── manual/                       ← Лёгкий профиль (без браузеров) и ручной трек (Ур.1→Ур.5)
     │   ├── factcheck_manual.py       ← Сканер ручных источников (stdlib-only)
     │   └── manual.md                 ← Референс режима
     │
