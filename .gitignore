@@ -34,3 +34,6 @@ node_modules/
 
 # Isolated testbeds & feature sandboxes (полностью локально, вне git)
 sandbox/
+
+# Windows artifact: нераскрытая переменная %SystemDrive%\ProgramData\...\Caches
+%SystemDrive%/
