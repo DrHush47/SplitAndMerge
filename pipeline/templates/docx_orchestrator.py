@@ -23,7 +23,7 @@ def set_run_font(run, name="Times New Roman", size=12, bold=None, italic=None):
     rFonts = rPr.find(qn('w:rFonts'))
     if rFonts is None:
         rFonts = OxmlElement('w:rFonts')
-        rPr.append(rFonts)
+        rPr.insert(0, rFonts)
     for attr in ['w:ascii', 'w:hAnsi', 'w:cs', 'w:eastAsia']:
         rFonts.set(qn(attr), name)
 
