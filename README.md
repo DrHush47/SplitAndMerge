@@ -6,16 +6,10 @@
 и автоматической верификации источников. Главная идея — не доверять LLM
 без программной проверки.
 
-**5 ролей** (Оркестратор, Рецензент, Текстовик, Технический исполнитель,
-Факт-чекер) работают по модели split-and-merge: задача разделяется на
-«творческие» и «механические» подзадачи, каждая идёт своему исполнителю,
-результаты собираются и валидируются.
+**Единая точка входа — [`AGENTS.md`](AGENTS.md) (v2 — Agent-First Core):**
+ведущий агент сессии сам подбирает глубину сценария под задачу (**3 адаптивных трека `S / M / L`**, **4 фазы**: разведка → фактбаза `results.md` → текст и сборка → программная верификация). Для объёмной генерации текстов `[TEXT-N]` сохраняется внешний Текстовик **[GemBot (Writing Editor)](https://gemini.google.com/gem/writing-editor)** (или связка `GemBot → Claude`) с автосборкой пакета `gembot_prompt.md`.
 
-**10 этапов конвейера** (плюс промежуточная верификация 4.5):
-критический разбор → декомпозиция → сбор фактов → генерация →
-повторная верификация → рецензирование → сборка промпта →
-механическая правка → программная вычитка → точечные правки →
-финальная проверка.
+**Сфокусированные гейты проверки (`pipeline/prompts/subagents/`):** `factcheck-gate`, `audit-gate` и `code-gate` работают с фиксацией на конкретном артефакте (Scope Pinning) — вызываются как read-only саб-агенты **только по согласию пользователя**, а в средах без саб-агентов (например, OpenSRE) исполняются напрямую как изолированный проход по тем же чек-листам.
 
 **7 уровней фактчекинга** — схема, эскалация, вердикты только в [`pipeline/docs/cascade.md`](pipeline/docs/cascade.md): ~95% проверок закрываются на бесплатных уровнях.
 
@@ -92,28 +86,30 @@ git pull origin main
 
 | Файл | Назначение |
 |------|-----------|
-| [`docs/architecture.md`](pipeline/docs/architecture.md) | Архитектура конвейера — 5 ролей, 10 этапов, 7 принципов |
+| [`AGENTS.md`](AGENTS.md) | **Единая точка входа** для ИИ-агентов — guardrails, треки `S/M/L`, GemBot Handoff, opt-in гейты, маршрутизация SSOT |
+| [`docs/architecture.md`](pipeline/docs/architecture.md) | Архитектура ядра v2 — разделение по артефактам и гейтам, треки `S/M/L`, 4 фазы, 8 неизменяемых принципов |
+| [`docs/editorial-standards.md`](pipeline/docs/editorial-standards.md) | Единый канон качества текстов — аннотации, 2 режима `References` (без смешивания стилей), типографика и антипаттерны |
 | [`docs/knowledge.md`](pipeline/docs/knowledge.md) | Каскад веб-фактчекинга — техконстанты, команды запуска |
 | [`docs/cascade.md`](pipeline/docs/cascade.md) | Единый источник схемы каскада — 7 уровней, правила эскалации, словарь вердиктов |
-| [`docs/docx-protocol.md`](pipeline/docs/docx-protocol.md) | Протокол правки .docx через python-docx — правила, шаблоны, антипаттерны |
-| [`docs/presentation-protocol.md`](pipeline/docs/presentation-protocol.md) | Протокол сборки презентаций .pptx — триада доклада, fit_in_box, автоподбор Ultra-HD ассетов, экспорт 1080p |
+| [`docs/docx-protocol.md`](pipeline/docs/docx-protocol.md) | Протокол правки и программной вычитки `.docx` через `python-docx` — правила, шаблоны, антипаттерны |
+| [`docs/presentation-protocol.md`](pipeline/docs/presentation-protocol.md) | Протокол сборки презентаций `.pptx` — триада доклада, `fit_in_box`, автоподбор Ultra-HD ассетов, экспорт 1080p |
 | [`docs/biomed-protocol.md`](pipeline/docs/biomed-protocol.md) | Протокол биомедицинского модуля и Ур.0.7 (BioMed Deep Check) — PubMed, Europe PMC, HPA, ClinicalTrials |
-| [`docs/research-skills.md`](pipeline/docs/research-skills.md) | Канон 5 исследовательских навыков (deep-research, litreview, deepread, research, research-summarizer) — карта по ролям/этапам, границы, команды скриптов |
-| [`docs/llm.md`](pipeline/docs/llm.md) | Полное руководство по prompt engineering — техники, шаблоны, безопасность (Anthropic, OpenAI, Google, Meta, OWASP). **Рекомендован рецензенту и (со-)оркестратору для удобного написания промптов** |
+| [`docs/research-skills.md`](pipeline/docs/research-skills.md) | Канон 5 исследовательских навыков (`deep-research`, `litreview`, `deepread`, `research`, `research-summarizer`) — карта по фазам/гейтам, границы, команды скриптов |
+| [`docs/llm.md`](pipeline/docs/llm.md) | Полное руководство по prompt engineering — техники, шаблоны, безопасность (Anthropic, OpenAI, Google, Meta, OWASP) |
 | [`pipeline/manual/manual.md`](pipeline/manual/manual.md) | Лёгкий профиль `lite` (без браузеров) и ручной трек (Ур.1→Ур.5) — состав, workflow, конвенция имён, референс сканера |
-| [`prompts/`](pipeline/prompts/) | Готовые шаблоны промптов для ролей конвейера — 5 заготовок (reviewer, textwriter, tech-executor, factchecker, co-orchestrator). Для роли текстовика оптимален [Writing Editor (Gemini Gem)](https://gemini.google.com/gem/writing-editor) (при наличии токенов — связка GemBot → Claude; см. [`prompts/textwriter.md`](pipeline/prompts/textwriter.md) § Первоисточники) |
+| [`prompts/`](pipeline/prompts/) | Внешний Текстовик [`prompts/textwriter.md`](pipeline/prompts/textwriter.md) ([Writing Editor / GemBot](https://gemini.google.com/gem/writing-editor) или связка `GemBot → Claude`) + 3 шаблона сфокусированных гейтов в [`prompts/subagents/`](pipeline/prompts/subagents/) (`factcheck-gate`, `audit-gate`, `code-gate`) |
 
 ### Карта чтения
 
-Порядок чтения: `pipeline/docs/architecture.md` → `pipeline/docs/cascade.md` → `pipeline/docs/knowledge.md` §0.1 → нужный раздел (`pipeline/docs/docx-protocol.md` для правки .docx; `pipeline/docs/presentation-protocol.md` для сборки презентаций .pptx и материалов доклада; `pipeline/docs/biomed-protocol.md` для биомедицинского фактчекинга и валидации статей; `pipeline/docs/research-skills.md` для исследовательских навыков факт-чекера/рецензента/со-оркестратора; `pipeline/manual/manual.md` для быстрого режима; `pipeline/prompts/` для текста роли; референс уровня `openalex/scrapling/firecrawl` только перед его запуском; **`pipeline/docs/llm.md` — рецензенту и (со-)оркестратору перед написанием промптов**; для роли текстовика оптимален [Writing Editor (Gemini Gem)](https://gemini.google.com/gem/writing-editor) (при наличии токенов — связка GemBot → Claude; см. [`pipeline/prompts/textwriter.md`](pipeline/prompts/textwriter.md) § Первоисточники)).
+Порядок чтения: [`AGENTS.md`](AGENTS.md) (единая точка входа) → [`pipeline/docs/architecture.md`](pipeline/docs/architecture.md) → нужный профильный канон под задачу (`pipeline/docs/editorial-standards.md` для текстов и `References`; `pipeline/docs/cascade.md` + `pipeline/docs/knowledge.md` §0.1 для фактчекинга; `pipeline/docs/docx-protocol.md` для `.docx`; `pipeline/docs/presentation-protocol.md` для `.pptx` и триады доклада; `pipeline/docs/biomed-protocol.md` для биомедицинского фактчекинга; `pipeline/docs/research-skills.md` для исследовательских навыков; `pipeline/manual/manual.md` для быстрого режима; `pipeline/prompts/textwriter.md` для внешнего Текстовика GemBot / `GemBot → Claude`; `pipeline/prompts/subagents/` для гейтов проверки; референс уровня `openalex/scrapling/firecrawl` только перед запуском).
 
-Каноны (не дублируются в других файлах): схема и вердикты — `cascade.md`; команды и пути — `knowledge.md` §0.1; презентации и триада доклада — `presentation-protocol.md`; биомедицинский модуль — `biomed-protocol.md`; исследовательские навыки — `research-skills.md`; код шаблона .docx — `pipeline/templates/docx_orchestrator.py`.
+Каноны (не дублируются в других файлах): редакционные стандарты и `References` — `editorial-standards.md`; схема и вердикты — `cascade.md`; команды и пути — `knowledge.md` §0.1; презентации и триада доклада — `presentation-protocol.md`; биомедицинский модуль — `biomed-protocol.md`; исследовательские навыки — `research-skills.md`; код шаблона `.docx` — `pipeline/templates/docx_orchestrator.py`.
 
 ## Структура проекта
 
 ```
 ├── README.md                         ← Этот файл
-├── AGENTS.md                         ← Манифест и таблица маршрутизации (SSOT) для ИИ-агентов
+├── AGENTS.md                         ← Единая точка входа (v2) и таблица маршрутизации (SSOT) для ИИ-агентов
 ├── pyproject.toml                    ← Пакет проекта: установка и команда `sam`
 ├── skills-lock.json                  ← Лок внешних навыков (docx,
 │                                       find-skills с GitHub; локальные
@@ -143,19 +139,25 @@ git pull origin main
     ├── targets.json                  ← Цели для проверки (заполняется
     │                                    перед запуском)
 
-    ├── docs/                         ← Документация (8 файлов)
-    │   ├── architecture.md           ← Архитектура конвейера
+    ├── docs/                         ← Документация (9 файлов)
+    │   ├── architecture.md           ← Архитектура ядра v2 (треки S/M/L, 4 фазы, 8 принципов)
+    │   ├── editorial-standards.md    ← Канон качества текстов, 2 режима References, антипаттерны
     │   ├── knowledge.md              ← Каскад фактчекинга
     │   ├── cascade.md                ← Единый источник схемы каскада
-    │   ├── docx-protocol.md          ← Протокол правки .docx
+    │   ├── docx-protocol.md          ← Протокол правки и вычитки .docx
     │   ├── presentation-protocol.md  ← Протокол сборки презентаций (.pptx)
     │   ├── biomed-protocol.md        ← Протокол биомедицинского модуля
     │   ├── research-skills.md        ← Канон исследовательских навыков
     │   └── llm.md                    ← Prompt engineering (полное руководство)
 
-    ├── prompts/                      ← Шаблоны ролей (5 заготовок-промптов)
+    ├── prompts/                      ← Внешний Текстовик и профили гейтов
+    │   ├── textwriter.md             ← Шаблон Текстовика (GemBot / GemBot → Claude)
+    │   └── subagents/                ← 3 read-only гейта (opt-in / fallback)
+    │       ├── factcheck-gate.md     ← Независимая сверка фактов, ссылок и якорей
+    │       ├── audit-gate.md         ← Программная и редакционная вычитка .docx/.pptx
+    │       └── code-gate.md          ← Точечный аудит сложных скриптов правки
     ├── templates/                    ← Шаблоны и канон-код
-    │   ├── progress.template.md      ← Журнал этапов конвейера
+    │   ├── progress.template.md      ← Опциональный журнал сессии (Треки M/L)
     │   └── docx_orchestrator.py      ← Канон кода шаблона .docx
 
     ├── openalex/                     ← Ур.0.5 — валидация DOI

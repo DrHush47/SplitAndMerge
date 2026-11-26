@@ -13,15 +13,15 @@
 > (в конвейере не используются).
 > Локальные навыки — вне `skills-lock.json` (как `hush-*`, см. `README.md`).
 
-## 1. Карта применения (навык → роль → этап)
+## 1. Карта применения (навык → фаза / гейт)
 
-| Навык | Путь | Роль | Этапы | Задача |
-|---|---|---|---|---|
-| `deep-research` | `.agents/skills/deep-research/SKILL.md` | Факт-чекер (методология) | 3, 4.5, точечные вызовы | Дисциплинированное расследование дорогого вопроса: falsifiable-гипотезы, параллельный fan-out, триангуляция ≥3 независимых источников разных типов, обязательный adversarial-pass, каждый источник — отдельным файлом с verbatim-цитатой |
-| `litreview` | `.agents/skills/litreview/SKILL.md` | Факт-чекер (поиск) | 3, 4.5 | Академический поиск по бесплатной полосе PubMed E-utilities + OpenAlex (без ключа): PICO / SPIDER / Decomposition, era-gating, cross-search intelligence (repeat-hits, recurring authors). Результат — `results.md` как сырьё для Текстовика |
-| `deepread` | `.agents/skills/deepread/SKILL.md` | Рецензент | 1, 5 | Доказательное чтение supplied-материала: центральный тезис, argument tree, evidence ledger с метками уверенности (позиция автора / факт источника / вывод / unverified). Режимы `quick/deep/map/feynman/book`, по умолчанию `deep` |
-| `research` | `.agents/skills/research/SKILL.md` | Со-оркестратор (маршрутизация) | 2, 6 | Гибридный роутер: детерминированная классификация → делегация специалисту (`litreview`/`deepread`) или собственный fallback `plan-decompose-search-synthesize-cite`. Решение о маршруте всегда озвучивается, молча не делегирует |
-| `research-summarizer` | `.agents/skills/research-summarizer/SKILL.md` | Факт-чекер (выжимка) | 3, 4.5 | Структурированная выжимка каждого источника: тезис → находки (каждая с доказательством) → дословные цитаты с якорем (раздел/страница). Правило: факт без якоря на Этапе 4.5 = `UNCERTAIN`. Скрипты: `extract_citations.py` (сверка цитат с библиографией), `format_summary.py` (пустые каркасы выжимок) |
+| Навык | Путь | Фаза / Гейт | Задача |
+|---|---|---|---|
+| `deep-research` | `.agents/skills/deep-research/SKILL.md` | Фаза 2 (Фактбаза) / `factcheck-gate` (методология) | Дисциплинированное расследование дорогого вопроса: falsifiable-гипотезы, параллельный fan-out, триангуляция ≥3 независимых источников разных типов, обязательный adversarial-pass, каждый источник — отдельным файлом с verbatim-цитатой |
+| `litreview` | `.agents/skills/litreview/SKILL.md` | Фаза 2 (Фактбаза) / `factcheck-gate` (поиск) | Академический поиск по бесплатной полосе PubMed E-utilities + OpenAlex (без ключа): PICO / SPIDER / Decomposition, era-gating, cross-search intelligence (repeat-hits, recurring authors). Результат — `results.md` как сырьё для текста / GemBot |
+| `deepread` | `.agents/skills/deepread/SKILL.md` | Фаза 1 (Разведка) / `audit-gate` | Доказательное чтение supplied-материала: центральный тезис, argument tree, evidence ledger с метками уверенности (позиция автора / факт источника / вывод / unverified). Режимы `quick/deep/map/feynman/book`, по умолчанию `deep` |
+| `research` | `.agents/skills/research/SKILL.md` | Фаза 1 (Маршрутизация) | Гибридный роутер: детерминированная классификация → делегация специалисту (`litreview`/`deepread`) или собственный fallback `plan-decompose-search-synthesize-cite`. Решение о маршруте всегда озвучивается, молча не делегирует |
+| `research-summarizer` | `.agents/skills/research-summarizer/SKILL.md` | Фаза 2 (Фактбаза) / `factcheck-gate` (выжимка) | Структурированная выжимка каждого источника: тезис → находки (каждая с доказательством) → дословные цитаты с якорем (раздел/страница). Правило: факт без якоря при Post-factcheck = `UNCERTAIN`. Скрипты: `extract_citations.py` (сверка цитат с библиографией), `format_summary.py` (пустые каркасы выжимок) |
 
 ## 1.1 Доступные специалисты (обязательное ограничение роутера)
 
@@ -33,7 +33,7 @@
 `plan-decompose-search-synthesize-cite` (см. `fallback_decomposer.py`).
 Молча делегировать в неустановленный навык запрещено.
 `research-summarizer` в реестре роутера нет — вызывается напрямую
-Факт-чекером на Этапах 3/4.5, а не через `classifier.py`.
+на Фазе 2 и в `factcheck-gate`, а не через `classifier.py`.
 
 ## 2. Что навыки НЕ делают (границы)
 
@@ -43,15 +43,16 @@
 2. **Не заменяют скрипты Ур.0.5/2/3.** `free_search.py` дополняет OpenAlex-поиск
    полосой PubMed, но программная DOI-сверка остаётся за
    `pipeline/openalex/factcheck_openalex.py`.
-3. **Не генерируют библиографию для Текстовика.** Текстовик берёт источники
+3. **Не генерируют библиографию для Текстовика.** Текстовик (GemBot или агент) берёт источники
    ТОЛЬКО из `{{МАТЕРИАЛ}}` (`results.md`); навыкам запрещено «искать более
-   подходящие» статьи (см. катастрофу промпта v2 в [`architecture.md`](architecture.md)).
+   подходящие» статьи (см. кейс промпта v2 в [`architecture.md`](architecture.md)).
 4. **Не выносят вердикты.** Вердикты `CONFIRMED / REFUTED / UNCERTAIN / BLOCKED` —
    только по словарю [`cascade.md`](cascade.md); навыки дают evidence,
-   вердикт выносит Факт-чекер (+ человек на Ур.5).
+   вердикт выносится в `factcheck-gate` (+ человек на Ур.5).
 5. **Выжимки — не статья.** `research-summarizer` готовит сырьё для `results.md`,
-   а не текст статьи; `.docx`-сборку и оформление ссылок (ГОСТ/журнальный стиль,
-   не APA/IEEE из `references/citation-formats.md`) ведут конвейерные роли.
+   а не текст статьи; `.docx`-сборку и оформление ссылок (ГОСТ/журнальный стиль по
+   [`editorial-standards.md`](editorial-standards.md), не APA/IEEE из `references/citation-formats.md`)
+   ведёт основной контур сборки.
 
 ## 3. Запуск скриптов (stdlib-only, без установки)
 
@@ -93,7 +94,7 @@
 - Цитировать только то, что вернули вызовы **этой** сессии; тренировочные знания
   помечать и из подсчётов исключать; тонкие результаты заявлять явно, не добивать выдумкой.
 - Каждый факт в `results.md` — с якорем (раздел/страница/цитата источника
-  по формату `research-summarizer`); факт без якоря на Этапе 4.5 = `UNCERTAIN`.
+  по формату `research-summarizer`); факт без якоря при Post-factcheck (`factcheck-gate`) = `UNCERTAIN`.
 - `extract_citations.py results.md --output json`: `total` обязан сходиться
   с числом библиографии; расхождение — расследовать, не замалчивать.
 - Последовательные запросы — 1 запр./сек на платформу; на сбой — ждать 3 сек,
@@ -106,5 +107,5 @@
 
 - [`cascade.md`](cascade.md) — схема 7 уровней, эскалация, словарь вердиктов (единственный источник)
 - [`knowledge.md`](knowledge.md) — техконстанты и команды запуска (§0.1)
-- [`architecture.md`](architecture.md) — роли и гейты (Роль 5, Этапы 1, 3, 4.5, 5)
+- [`architecture.md`](architecture.md) — архитектура v2: треки `S/M/L`, 4 фазы и протокол гейтов
 - [`docx-protocol.md`](docx-protocol.md) — протокол правки `.docx` (навыки `.docx`-сборку не ведут)
