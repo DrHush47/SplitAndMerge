@@ -24,7 +24,7 @@
 **Самоотчёт исполнителя недостоверен** — подтверждай всё фактами и программной проверкой.
 
 ### 1. Программная вычитка `.docx` (если артефакт — `.docx`)
-Выполни программную проверку через `python-docx` (в `.venv/Scripts/python.exe`, UTF-8 stdout) и/или `docx diff` против `BASELINE` (путь к бинарю `C:/Users/cherk/AppData/Local/Programs/docx/docx.exe` см. [`../../docs/docx-protocol.md`](../../docs/docx-protocol.md) §3.1 — если не найден, использовать `python-docx`; чек-лист: §7; либо анализ предвыгрузки `METRICS_DUMP`):
+Выполни программную проверку через `python-docx` (в `.venv/Scripts/python.exe`, UTF-8 stdout) и/или `docx diff` против `BASELINE` (путь к бинарю `%LOCALAPPDATA%/Programs/docx/docx.exe` см. [`../../docs/docx-protocol.md`](../../docs/docx-protocol.md) §3.1 — если не найден, использовать `python-docx`; чек-лист: §7; либо анализ предвыгрузки `METRICS_DUMP`):
 - поля страницы (конвертация EMU → мм);
 - шрифты и кегли по **всем** абзацам и **всем** ячейкам таблиц;
 - междустрочные интервалы и отступы;

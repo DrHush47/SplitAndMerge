@@ -204,7 +204,7 @@ print(f"Параграфов: {len(doc2.paragraphs)}, Таблиц: {len(doc2.ta
 ### 3.1 Установка новичков (один раз на машину, вне git)
 
 - **`docx-cli`:** бинарь `docx-windows-x64.exe` v0.26.0 из релизов
-  `kklimuk/docx-cli` → `C:/Users/cherk/AppData/Local/Programs/docx/docx.exe`
+  `kklimuk/docx-cli` → `%LOCALAPPDATA%/Programs/docx/docx.exe`
   (вне репо, в git не попадает). SHA256 обязан совпасть:
   `548864f9a827291e05a32a1f08a15825df34caee5c8ea7d56542b35bd99f8f85`
   (проверка: `Get-FileHash ... -Algorithm SHA256`). Лицензия LGPL-3.0 — внешний
