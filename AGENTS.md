@@ -25,30 +25,31 @@
 |---|---|---|
 | **S (Точечный)** | 1–3 локальные правки, мелкое форматирование, быстрый lookup без новой библиографии | Правка напрямую + обязательный программный post-check (без лишних файлов и гейтов) |
 | **M (Стандартный, дефолт ~80% задач)** | Редактура `.docx`, сборка `.pptx`, работа со статьёй / источниками | `workspace/<тема>/` → **1. Разведка и план** → **2. Фактбаза (`results.md`)** → **3. Текст и сборка** → **4. Программная проверка (+ гейты по чек-листам)** |
-| **L (Публикация / Высокий риск)** | Статья в рецензируемый журнал, >10 источников, жёсткий ГОСТ / `References` | Полный цикл: Pre- и Post-factcheck (`results.md`), внешний **GemBot** (или `GemBot → Claude`) для текстов `[TEXT-N]`, программный аудит + рекомендация независимых саб-агентов-гейтов |
+| **L (Публикация / Высокий риск)** | Статья в рецензируемый журнал, >10 источников, жёсткий ГОСТ / `References` | Полный цикл: Pre- и Post-factcheck (`results.md`), выделенный Текстовик (внешний **GemBot** / `GemBot → Claude` или opt-in саб-агент `textwriter-agent`) для `[TEXT-N]`, программный аудит + рекомендация независимых саб-агентов-гейтов |
 
-### Паттерн GemBot Handoff (внешний Текстовик)
-В роли Текстовика часто используется внешний **[Writing Editor (GemBot)](https://gemini.google.com/gem/writing-editor)** (или связка `GemBot → Claude`).
-- Шаблон [`pipeline/prompts/textwriter.md`](pipeline/prompts/textwriter.md) остаётся рабочим каноном для GemBot.
-- При большом объёме текста или по запросу пользователя ведущий агент **сам собирает** готовый к копипасте файл `workspace/<тема>/gembot_prompt.md` (вшивая `results.md`, выбранный режим `References` и ТЗ вместо `{{...}}`).
-- После получения `[TEXT-N]` от пользователя агент обязательно сверяет их с `results.md` и [`pipeline/docs/editorial-standards.md`](pipeline/docs/editorial-standards.md), затем вшивает в `.docx`/`.pptx` дословно.
+### Паттерн Текстовика (`GemBot Handoff` / саб-агент `textwriter-agent`)
+Для объёмной генерации блоков `[TEXT-N]` на основе `results.md` доступны два изолированных режима (оба опциональны; при малом объёме ведущий агент пишет сам):
+- **Внешний Текстовик ([Writing Editor / GemBot](https://gemini.google.com/gem/writing-editor) или связка `GemBot → Claude`):** канон — [`pipeline/prompts/textwriter.md`](pipeline/prompts/textwriter.md). Ведущий агент собирает готовый к копипасте `workspace/<тема>/gembot_prompt.md` (вшивая `results.md`, режим `References` и ТЗ вместо `{{...}}`) — оптимально для экономии коммерческих токенов и сред без саб-агентов.
+- **Саб-агент `textwriter-agent` (строго по указанию пользователя):** канон — [`pipeline/prompts/subagents/textwriter-agent.md`](pipeline/prompts/subagents/textwriter-agent.md). Работает в чистом контексте (**Read-Only + Zero-Search**, без правки `.docx` и веб-поиска) напрямую по `results.md` и [`editorial-standards.md`](pipeline/docs/editorial-standards.md), без ручного копипаста.
+- В обоих режимах полученные `[TEXT-N]` **обязательно** проходят Post-Factcheck (`factcheck-gate` в отдельном контексте/проходе) перед дословной вшивкой в `.docx`/`.pptx`.
 
 ---
 
-## 3. Саб-агенты-гейты (строго по согласию пользователя + Fallback)
+## 3. Саб-агенты: гейты проверки и opt-in Текстовик (только по согласию + Fallback)
 
-Чтобы убрать слепоту самопроверки (*self-confirmation bias*), проект использует 3 модульных read-only гейта со строгой фиксацией на конкретном артефакте (**Scope Pinning**):
+Чтобы убрать слепоту самопроверки (*self-confirmation bias*) и изолировать генерацию от шума разведки, проект использует модульные read-only профили со строгой фиксацией на артефакте (**Scope Pinning**):
 
-| Гейт | Шаблон брифа | Что проверяет (Read-Only) |
-|---|---|---|
-| `factcheck-gate` | [`pipeline/prompts/subagents/factcheck-gate.md`](pipeline/prompts/subagents/factcheck-gate.md) | Сверка `[TEXT-N]` / фактов / DOI / URL / якорей против `results.md` |
-| `audit-gate` | [`pipeline/prompts/subagents/audit-gate.md`](pipeline/prompts/subagents/audit-gate.md) | Программная (`python-docx` / `docx diff` / 1080p PNG) + редакционная вычитка итогового артефакта |
-| `code-gate` | [`pipeline/prompts/subagents/code-gate.md`](pipeline/prompts/subagents/code-gate.md) | Опциональный аудит сложного скрипта правок (`R1–R4`, таблицы, дубли, Windows UTF-8) |
+| Профиль | Роль | Шаблон брифа | Назначение (Read-Only) |
+|---|---|---|---|
+| `factcheck-gate` | Гейт | [`pipeline/prompts/subagents/factcheck-gate.md`](pipeline/prompts/subagents/factcheck-gate.md) | Сверка `[TEXT-N]` / фактов / DOI / URL / якорей против `results.md` |
+| `audit-gate` | Гейт | [`pipeline/prompts/subagents/audit-gate.md`](pipeline/prompts/subagents/audit-gate.md) | Программная (`python-docx` / `docx diff` / 1080p PNG) + редакционная вычитка артефакта |
+| `code-gate` | Гейт | [`pipeline/prompts/subagents/code-gate.md`](pipeline/prompts/subagents/code-gate.md) | Опциональный аудит сложного скрипта правок (`R1–R4`, таблицы, дубли, Windows UTF-8) |
+| `textwriter-agent` | Генератор | [`pipeline/prompts/subagents/textwriter-agent.md`](pipeline/prompts/subagents/textwriter-agent.md) | Чистая генерация `[TEXT-N]` по `results.md` + `editorial-standards.md` (Zero-Search; **не гейт**, вывод проверяет `factcheck-gate`) |
 
 > **Правило деликатной активации (Opt-in & Environment-Safe):**
-> 1. **Без явного указания пользователя саб-агентов НЕ спавнить.**
-> 2. В начале задачи Трека **M / L** (если есть библиография, важный `.docx`/`.pptx` или нетривиальный скрипт) просто добавь одну спокойную строку: *«Проект рекомендует использовать саб-агент-гейт (`factcheck-gate` / `audit-gate`) в этой задаче — сообщите, если ваша среда поддерживает саб-агентов и хотите их подключить»*.
-> 3. **Fallback для сред без саб-агентов (напр. OpenSRE) или при отказе:** ведущий агент выполняет те же чек-листы напрямую как отдельный изолированный проход проверки, не падая и не теряя требований качества.
+> 1. **Без явного указания пользователя саб-агентов НЕ спавнить** (ни гейты, ни `textwriter-agent`).
+> 2. В начале задачи Трека **M / L** (если есть библиография, большой объём текста, важный `.docx`/`.pptx` или нетривиальный скрипт) добавь одну спокойную строку: *«Проект рекомендует подключить саб-агентов (`factcheck-gate` / `audit-gate`, при желании — `textwriter-agent` для `[TEXT-N]`) — сообщите, если среда поддерживает саб-агентов и хотите их активировать»*.
+> 3. **Fallback для сред без саб-агентов (напр. OpenSRE) или при отказе:** гейты выполняются ведущим агентом напрямую как отдельный изолированный проход по тем же чек-листам, а роль Текстовика берёт внешний `GemBot` (`gembot_prompt.md`) или ведущий агент.
 
 ---
 
@@ -67,6 +68,6 @@
 | **Правка и вычитка `.docx`** | [`pipeline/docs/docx-protocol.md`](pipeline/docs/docx-protocol.md) | `python-docx`, [`docx_orchestrator.py`](pipeline/templates/docx_orchestrator.py), `hush-docx`, `docx-cli`, `docx-master` |
 | **Сборка презентаций `.pptx`** | [`pipeline/docs/presentation-protocol.md`](pipeline/docs/presentation-protocol.md) | `python-pptx`, триада доклада, `fit_in_box`, экспорт 1080p |
 | **Исследовательские навыки** | [`pipeline/docs/research-skills.md`](pipeline/docs/research-skills.md) | `deep-research`, `litreview`, `deepread`, `research`, `research-summarizer` |
-| **Внешний Текстовик (GemBot)** | [`pipeline/prompts/textwriter.md`](pipeline/prompts/textwriter.md) | `GemBot` (Writing Editor) → опционально `Claude`; `[TEXT-N]` |
+| **Текстовик (`GemBot` / саб-агент)** | [`pipeline/prompts/textwriter.md`](pipeline/prompts/textwriter.md) / [`textwriter-agent.md`](pipeline/prompts/subagents/textwriter-agent.md) | Внешний `GemBot` (`→ Claude`) или opt-in `textwriter-agent`; `[TEXT-N]` |
 | **Журнал крупной сессии (опц.)** | [`pipeline/templates/progress.template.md`](pipeline/templates/progress.template.md) | Опциональный трекер фаз и гейтов для Треков M/L |
 | **Написание промптов (PE)** | [`pipeline/docs/llm.md`](pipeline/docs/llm.md) | Руководство по prompt engineering |

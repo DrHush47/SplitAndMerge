@@ -1,7 +1,7 @@
 # Редакционные стандарты и правила качества (SSOT)
 
 > **Единый источник правды** по формальным требованиям к научному тексту, аннотациям, типографике, оформлению блока `References` и списку запрещённых антипаттернов.
-> Используется ведущим агентом, внешним Текстовиком (`GemBot` / `GemBot → Claude`, автономная копия правил в [`../prompts/textwriter.md`](../prompts/textwriter.md)) и гейтом проверки [`../prompts/subagents/audit-gate.md`](../prompts/subagents/audit-gate.md).
+> Используется ведущим агентом, саб-агентом [`../prompts/subagents/textwriter-agent.md`](../prompts/subagents/textwriter-agent.md), внешним Текстовиком (`GemBot` / `GemBot → Claude`, автономная копия правил в [`../prompts/textwriter.md`](../prompts/textwriter.md)) и гейтом проверки [`../prompts/subagents/audit-gate.md`](../prompts/subagents/audit-gate.md).
 
 ---
 
@@ -90,5 +90,6 @@
 
 - [`architecture.md`](architecture.md) — архитектура ядра Split & Merge v2 и 8 принципов
 - [`../prompts/textwriter.md`](../prompts/textwriter.md) — шаблон внешнего Текстовика (`GemBot` / `GemBot → Claude`)
+- [`../prompts/subagents/textwriter-agent.md`](../prompts/subagents/textwriter-agent.md) — шаблон opt-in саб-агента-генератора `[TEXT-N]` (Read-Only + Zero-Search)
 - [`../prompts/subagents/audit-gate.md`](../prompts/subagents/audit-gate.md) — шаблон гейта редакционного и программного аудита
 - [`docx-protocol.md`](docx-protocol.md) — протокол программной правки и вычитки `.docx`

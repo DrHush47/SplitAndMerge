@@ -7,9 +7,9 @@
 без программной проверки.
 
 **Единая точка входа — [`AGENTS.md`](AGENTS.md) (v2 — Agent-First Core):**
-ведущий агент сессии сам подбирает глубину сценария под задачу (**3 адаптивных трека `S / M / L`**, **4 фазы**: разведка → фактбаза `results.md` → текст и сборка → программная верификация). Для объёмной генерации текстов `[TEXT-N]` сохраняется внешний Текстовик **[GemBot (Writing Editor)](https://gemini.google.com/gem/writing-editor)** (или связка `GemBot → Claude`) с автосборкой пакета `gembot_prompt.md`.
+ведущий агент сессии сам подбирает глубину сценария под задачу (**3 адаптивных трека `S / M / L`**, **4 фазы**: разведка → фактбаза `results.md` → текст и сборка → программная верификация). Для объёмной генерации текстов `[TEXT-N]` доступны два изолированных режима: внешний Текстовик **[GemBot (Writing Editor)](https://gemini.google.com/gem/writing-editor)** (или связка `GemBot → Claude`) с автосборкой `gembot_prompt.md`, либо — по указанию пользователя в среде с саб-агентами — read-only саб-агент **`textwriter-agent`** (Zero-Search, напрямую по `results.md` и `editorial-standards.md`).
 
-**Сфокусированные гейты проверки (`pipeline/prompts/subagents/`):** `factcheck-gate`, `audit-gate` и `code-gate` работают с фиксацией на конкретном артефакте (Scope Pinning) — вызываются как read-only саб-агенты **только по согласию пользователя**, а в средах без саб-агентов (например, OpenSRE) исполняются напрямую как изолированный проход по тем же чек-листам.
+**Сфокусированные профили саб-агентов (`pipeline/prompts/subagents/`):** 3 read-only гейта проверки (`factcheck-gate`, `audit-gate`, `code-gate`) + opt-in генератор `textwriter-agent` работают с фиксацией на конкретном артефакте (Scope Pinning) — вызываются **только по согласию пользователя**, а в средах без саб-агентов (например, OpenSRE) гейты исполняются напрямую как изолированный проход по тем же чек-листам.
 
 **7 уровней фактчекинга** — схема, эскалация, вердикты только в [`pipeline/docs/cascade.md`](pipeline/docs/cascade.md): ~95% проверок закрываются на бесплатных уровнях.
 
@@ -97,7 +97,7 @@ git pull origin main
 | [`docs/research-skills.md`](pipeline/docs/research-skills.md) | Канон 5 исследовательских навыков (`deep-research`, `litreview`, `deepread`, `research`, `research-summarizer`) — карта по фазам/гейтам, границы, команды скриптов |
 | [`docs/llm.md`](pipeline/docs/llm.md) | Полное руководство по prompt engineering — техники, шаблоны, безопасность (Anthropic, OpenAI, Google, Meta, OWASP) |
 | [`pipeline/manual/manual.md`](pipeline/manual/manual.md) | Лёгкий профиль `lite` (без браузеров) и ручной трек (Ур.1→Ур.5) — состав, workflow, конвенция имён, референс сканера |
-| [`prompts/`](pipeline/prompts/) | Внешний Текстовик [`prompts/textwriter.md`](pipeline/prompts/textwriter.md) ([Writing Editor / GemBot](https://gemini.google.com/gem/writing-editor) или связка `GemBot → Claude`) + 3 шаблона сфокусированных гейтов в [`prompts/subagents/`](pipeline/prompts/subagents/) (`factcheck-gate`, `audit-gate`, `code-gate`) |
+| [`prompts/`](pipeline/prompts/) | Внешний Текстовик [`prompts/textwriter.md`](pipeline/prompts/textwriter.md) ([Writing Editor / GemBot](https://gemini.google.com/gem/writing-editor) или `GemBot → Claude`) + 4 шаблона саб-агентов в [`prompts/subagents/`](pipeline/prompts/subagents/) (гейты `factcheck-gate`, `audit-gate`, `code-gate` + opt-in генератор `textwriter-agent`) |
 
 ### Карта чтения
 
@@ -150,12 +150,13 @@ git pull origin main
     │   ├── research-skills.md        ← Канон исследовательских навыков
     │   └── llm.md                    ← Prompt engineering (полное руководство)
 
-    ├── prompts/                      ← Внешний Текстовик и профили гейтов
-    │   ├── textwriter.md             ← Шаблон Текстовика (GemBot / GemBot → Claude)
-    │   └── subagents/                ← 3 read-only гейта (opt-in / fallback)
+    ├── prompts/                      ← Внешний Текстовик и профили саб-агентов
+    │   ├── textwriter.md             ← Шаблон внешнего Текстовика (GemBot / GemBot → Claude)
+    │   └── subagents/                ← 3 read-only гейта + opt-in генератор (Scope Pinning)
     │       ├── factcheck-gate.md     ← Независимая сверка фактов, ссылок и якорей
     │       ├── audit-gate.md         ← Программная и редакционная вычитка .docx/.pptx
-    │       └── code-gate.md          ← Точечный аудит сложных скриптов правки
+    │       ├── code-gate.md          ← Точечный аудит сложных скриптов правки
+    │       └── textwriter-agent.md   ← Opt-in генератор [TEXT-N] (Read-Only + Zero-Search)
     ├── templates/                    ← Шаблоны и канон-код
     │   ├── progress.template.md      ← Опциональный журнал сессии (Треки M/L)
     │   └── docx_orchestrator.py      ← Канон кода шаблона .docx
