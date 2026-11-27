@@ -13,6 +13,47 @@
 
 **7 уровней фактчекинга** — схема, эскалация, вердикты только в [`pipeline/docs/cascade.md`](pipeline/docs/cascade.md): ~95% проверок закрываются на бесплатных уровнях.
 
+## Сценарий рабочих сессий (треки S / M / L)
+
+```mermaid
+flowchart TD
+    Task["Задача пользователя (документ, статья, слайды, факты)"] --> Entry["Единая точка входа: AGENTS.md<br/>(профиль lite по умолчанию, право вето человека)"]
+    Entry --> Track{"Выбор трека по объёму и риску"}
+
+    Track -->|"Трек S (1-3 правки)"| S1
+    Track -->|"Трек M (~80% задач)"| M1
+    Track -->|"Трек L (публикация / ГОСТ)"| L1
+
+    subgraph TrackS["Трек S: Точечный (без новой библиографии)"]
+        S1["Прямая правка:<br/>python-docx / hush-docx / docx-cli"] --> S2["Базовый программный post-check<br/>(открытие файла, ключевые метрики)"]
+        S2 --> S3["Готово<br/>(без workspace, Текстовика и саб-агентов)"]
+    end
+
+    subgraph TrackM["Трек M: Стандартный (статья, .docx, .pptx)"]
+        M1["Фаза 1: Разведка и план в workspace/тема/<br/>python-docx, deepread, research + снапшот"] --> M2["Opt-in: предложить саб-агентов<br/>(OpenSRE -> fallback напрямую)"]
+        M2 --> M3["Фаза 2 (если есть ссылки / факты):<br/>Ур.0.5 OpenAlex, Ур.0.7 BioMed,<br/>fetch_lite, Ур.1 -> results.md"]
+        M3 --> M4["Фаза 3а (Текст по results.md):<br/>ведущий агент ИЛИ GemBot<br/>ИЛИ opt-in textwriter-agent"]
+        M4 -->|"сверка [TEXT-N] с results.md"| M5["Фаза 3б (Сборка в папке скрипты/):<br/>hush-docx / docx-cli / docx-master<br/>python-pptx (fit_in_box) / PyMOL"]
+        M5 --> M6["Фаза 4 (Верификация):<br/>программная вычитка + docx diff / 1080p<br/>+ проверка по чек-листам гейтов"]
+        M6 -->|"Есть недочёты (2-й прогон)"| M5
+        M6 -->|"PASS"| M7["Готовый артефакт"]
+    end
+
+    subgraph TrackL["Трек L: Публикация / Высокий риск (>10 источников, ГОСТ)"]
+        L1["Фаза 1: Глубокий разбор и план<br/>deepread + python-docx, снапшот,<br/>progress.md в workspace/тема/"] --> L2["Opt-in: предложить саб-агентов<br/>factcheck-gate + audit-gate<br/>(+ textwriter-agent по желанию)"]
+        L2 --> L3["Фаза 2 (Обязательный Pre-Factcheck):<br/>OpenAlex + BioMed + litreview / deep-research<br/>+ research-summarizer (Ур.2-5 при блоках)<br/>-> results.md с якорями"]
+        L3 --> L4["Фаза 3а (Выделенный Текстовик):<br/>gembot_prompt.md -> GemBot (или GemBot -> Claude)<br/>ЛИБО opt-in textwriter-agent (Zero-Search)<br/>-> блоки [TEXT-N]"]
+        L4 --> L5["Обязательный Post-Factcheck (factcheck-gate):<br/>сверка [TEXT-N] + extract_citations.py<br/>против results.md (Zero Trust)"]
+        L5 -->|"FAIL (нет якоря / подмена)"| L4
+        L5 -->|"PASS"| L6["Фаза 3б (Сборка в workspace/тема/скрипты/):<br/>дословная вшивка [TEXT-N] скриптом<br/>(+ опц. code-gate для сложного кода)"]
+        L6 --> L7["Фаза 4 (Полный аудит — audit-gate):<br/>python-docx + docx diff + check_pdf_page_breaks<br/>METRICS_DUMP (SHA-256) + editorial-standards.md"]
+        L7 -->|"FAIL (2-й точечный прогон)"| L6
+        L7 -->|"PASS"| L8["Финальная сдача<br/>(снятие пунктов — только человек)"]
+    end
+```
+
+> Детализация ролей, гейтов и 8 принципов — в [`pipeline/docs/architecture.md`](pipeline/docs/architecture.md), правила эскалации 7 уровней каскада — в [`pipeline/docs/cascade.md`](pipeline/docs/cascade.md).
+
 ## Быстрый старт (лёгкий профиль `lite`, ~16,5 МБ)
 
 > **Рекомендуемый путь для ~95% задач:** лёгкий профиль `lite` ставится за 5–10 секунд, не тянет тяжёлые браузеры (`Playwright`/`Chromium`) и включает всё нужное для редактуры `.docx`, чтения PDF/HTML, OpenAlex (Ур.0.5), BioMed Deep Check (Ур.0.7), биомед-навыков и ручного трека `manual`.
